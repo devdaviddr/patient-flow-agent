@@ -1,8 +1,7 @@
 import { tool } from "@opencode-ai/plugin"
 
-// Read-only. Transparent heuristic demand forecast (expected admissions) for a
-// ward over a horizon, with a plain-English rationale.
-// Calls the simulator; falls back to a mock until Phase 1/2 are wired.
+// Read-only. Transparent incoming-demand forecast for a ward over a horizon, with
+// an inspectable rationale. No fallback — errors surface rather than fabricating data.
 export default tool({
   description: "Heuristic incoming-demand forecast for a ward, with inspectable rationale",
   args: {
@@ -16,16 +15,10 @@ export default tool({
         headers: { "content-type": "application/json" },
         body: JSON.stringify(a),
       })
-      if (!r.ok) throw new Error(`sim ${r.status}`)
+      if (!r.ok) return JSON.stringify({ error: `simulator returned ${r.status}` })
       return await r.text()
     } catch {
-      return JSON.stringify({
-        wardId: a.wardId,
-        horizonHrs: a.horizonHrs,
-        expectedAdmissions: 3,
-        rationale: "ED queue of 3 plus typical afternoon arrival rate over the horizon.",
-        _mock: true,
-      })
+      return JSON.stringify({ error: `simulator unreachable at ${process.env.SIM_URL}` })
     }
   },
 })

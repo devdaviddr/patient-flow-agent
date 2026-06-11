@@ -5,7 +5,7 @@
 | **Feature** | Tools bridge (real forecasts & actions) + the safety invariant |
 | **Phase** | 2 of the development plan |
 | **Version** | 0.2.0 |
-| **Status** | Plan PR — awaiting review/merge |
+| **Status** | ✅ Built & verified (C1–C9) — code PR open |
 | **Branch** | `feat/tools-safety` |
 | **Companions** | `Architecture.md` (§4.2, §7), `PRD.md` (R3, R6, S2, S13), `development-Plan.md` (Phase 2) |
 

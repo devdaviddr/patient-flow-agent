@@ -10,8 +10,15 @@ import {
   TICK_MINUTES,
   type ScenarioName,
 } from "./scenarios"
-import type { WorldState } from "./state"
+import type { BlockerType, WorldState } from "./state"
 import { addMinutes } from "./time"
+
+export interface ActionResult {
+  applied: boolean
+  patientId: string
+  blocker?: BlockerType
+  note: string
+}
 
 export class Simulator {
   private state: WorldState
@@ -53,5 +60,32 @@ export class Simulator {
     for (const e of events) s = reduce(s, e)
     this.state = { ...s, at: now }
     return events
+  }
+
+  /**
+   * Apply an approved action: clear `blocker` for `patientId` by emitting a
+   * blocker_resolved event. Only clears the matching blocker type — any other
+   * case (no such patient, different blocker) is a safe no-op.
+   */
+  resolveBlocker(patientId: string, blocker: BlockerType): ActionResult {
+    const patient = this.state.patients.find((p) => p.id === patientId)
+    if (!patient) {
+      return { applied: false, patientId, note: `No such patient ${patientId}.` }
+    }
+    if (patient.blocker !== blocker) {
+      return {
+        applied: false,
+        patientId,
+        blocker: patient.blocker,
+        note: `Patient ${patientId} is not blocked on ${blocker} (current: ${patient.blocker}).`,
+      }
+    }
+    this.state = reduce(this.state, {
+      kind: "blocker_resolved",
+      at: this.state.at,
+      patientId,
+      blocker,
+    })
+    return { applied: true, patientId, blocker, note: `Cleared ${blocker} for ${patientId}.` }
   }
 }
