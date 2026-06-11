@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Secrets & local env
+.env
+.env.local
+
+# Next.js build output
+.next/
+out/
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/
+
+# OS / editor
+.DS_Store
+*.log

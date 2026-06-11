@@ -1,0 +1,56 @@
+# Patient Flow Orchestrator — local stack
+#
+#   docker compose up --build                  # hosted Claude (default)
+#   docker compose --profile local up --build  # local models via Ollama
+#
+services:
+  # Next.js app: UI + loop driver + in-process simulator + eval harness
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - OPENCODE_URL=http://opencode:4096
+      - SIM_URL=http://localhost:3000/api/sim
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - SCENARIO=${SCENARIO:-normal-weekday}
+      - SEED=${SEED:-42}
+    depends_on:
+      opencode:
+        condition: service_started
+    develop:
+      watch:
+        - action: sync
+          path: ./src
+          target: /app/src
+        - action: rebuild
+          path: package.json
+
+  # OpenCode agent harness, headless
+  opencode:
+    image: ghcr.io/sst/opencode:latest
+    command: ["serve", "--hostname", "0.0.0.0", "--port", "4096"]
+    ports:
+      - "4096:4096"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OLLAMA_URL=http://ollama:11434
+      - SIM_URL=http://app:3000/api/sim
+    volumes:
+      - ./.opencode:/workspace/.opencode:ro
+      - ./opencode.json:/workspace/opencode.json:ro
+
+  # Optional local model provider — enabled with: --profile local
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["local"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+
+volumes:
+  ollama-models:
