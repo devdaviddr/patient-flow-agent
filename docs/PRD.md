@@ -4,7 +4,7 @@
 | --- | --- |
 | **Version** | 1.4.0 |
 | **Status** | Approved |
-| **Owner** | David |
+| **Owner** | Daniel David |
 | **Date** | 2026-06-12 |
 
 ---
