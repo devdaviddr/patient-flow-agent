@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode/big-pickle",
+  "permission": {
+    "world_state": "allow",
+    "forecast_discharges": "allow",
+    "forecast_demand": "allow",
+    "expedite_script": "ask",
+    "request_transport": "ask"
+  }
+}
