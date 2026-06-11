@@ -3,8 +3,8 @@
 | | |
 | --- | --- |
 | **Feature** | OpenCode AI Harness |
-| **Version** | 0.1.0 |
-| **Status** | Draft — awaiting approval |
+| **Version** | 1.0.0 |
+| **Status** | ✅ Done — merged to `main` (PR #1) |
 | **Implements** | `spec.md` (same folder) |
 
 > Spec-Driven Development, step 2 (Plan): *how* the spec is built — file layout, the key technical
