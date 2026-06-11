@@ -5,7 +5,7 @@
 | **Feature** | Simulator — the synthetic hospital |
 | **Phase** | 1 of the development plan |
 | **Version** | 0.2.0 |
-| **Status** | Approved — building on `feat/simulator` |
+| **Status** | ✅ Built & verified (B1–B9) — PR #2 open |
 | **Branch** | `feat/simulator` |
 | **Companions** | `Architecture.md` (§4.1, §5, §8), `PRD.md` (R1, R2, §10), `development-Plan.md` (Phase 1) |
 
