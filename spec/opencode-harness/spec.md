@@ -4,9 +4,9 @@
 | --- | --- |
 | **Feature** | OpenCode AI Harness (the agent runtime) |
 | **Phase** | 3 of the development plan |
-| **Version** | 0.1.0 |
-| **Status** | Draft — awaiting approval |
-| **Branch** | `feat/opencode-harness` |
+| **Version** | 1.0.0 |
+| **Status** | ✅ Done — merged to `main` (PR #1); A1–A7 verified |
+| **Branch** | `feat/opencode-harness` (merged) |
 | **Companions** | `PRD.md` (§7), `OpenCode-Harness.md`, `Architecture.md` (§4.3), `development-Plan.md` (Phase 3) |
 
 > Spec-Driven Development, step 1 (Specify): *what* this feature is and *why*, plus the acceptance
