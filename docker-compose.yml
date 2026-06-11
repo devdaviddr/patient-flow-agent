@@ -29,16 +29,19 @@ services:
         - action: rebuild
           path: package.json
 
-  # OpenCode agent harness, headless
+  # OpenCode agent harness, headless (pinned image — see opencode.Dockerfile)
   opencode:
-    image: ghcr.io/sst/opencode:latest
-    command: ["serve", "--hostname", "0.0.0.0", "--port", "4096"]
+    build:
+      context: .
+      dockerfile: opencode.Dockerfile
     ports:
       - "4096:4096"
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OLLAMA_URL=http://ollama:11434
       - SIM_URL=http://app:3000/api/sim
+      # Server binds 0.0.0.0 — protect it with HTTP basic auth.
+      - OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-}
     volumes:
       - ./.opencode:/workspace/.opencode:ro
       - ./opencode.json:/workspace/opencode.json:ro

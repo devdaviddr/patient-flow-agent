@@ -43,13 +43,15 @@ See [`docs/`](./docs) for the full PRD, architecture, harness companion, and dev
 ## Quick start (Docker)
 
 ```bash
-cp .env.example .env          # then add your ANTHROPIC_API_KEY
+cp .env.example .env          # the default model is free — no API key needed
 docker compose up --build
 ```
 
 Open **http://localhost:3000**. The OpenCode harness runs headless alongside the app.
 
-To run with **local models** (Ollama) instead of the Anthropic API:
+The default reasoning model is the **OpenCode Zen free tier** (`opencode/big-pickle`) — no key, no cost. To use **hosted Claude** instead, add your `ANTHROPIC_API_KEY` to `.env` and point the agents at an `anthropic/*` model.
+
+To run with **local models** (Ollama):
 
 ```bash
 docker compose --profile local up --build
@@ -101,7 +103,7 @@ docs/               # PRD · Architecture · OpenCode-Harness · Development Pla
 - **Safe** — synthetic data only; an invariant test asserts no clinical output (acuity, triage, diagnosis, treatment) ever leaves the system.
 - **Repeatable** — the *simulator* is seeded, so the same seed and scenario replay an identical day.
 - **Human-gated** — no state changes without item-by-item approval in the driver.
-- **Portable** — the reasoning model is swappable (hosted Claude ↔ local Ollama) with no other change.
+- **Portable** — the reasoning model is swappable (OpenCode Zen ↔ hosted Claude ↔ local Ollama) with no other change.
 
 ## Configuration
 
@@ -109,7 +111,7 @@ All settings live in `.env` (see [`.env.example`](./.env.example)):
 
 | Variable | Purpose |
 | --- | --- |
-| `ANTHROPIC_API_KEY` | Hosted Claude access (default provider) |
+| `ANTHROPIC_API_KEY` | Hosted Claude access (optional — only if you swap off the free default) |
 | `OPENCODE_URL` | Where the app reaches `opencode serve` |
 | `SIM_URL` | Where the tools reach the simulator |
 | `SCENARIO` | `normal-weekday` or `flu-surge` |

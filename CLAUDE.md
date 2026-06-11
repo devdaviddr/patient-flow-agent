@@ -11,7 +11,7 @@ Authoritative docs (docs win over code; bump the doc version on change): `PRD.md
 * Framework: Next.js (App Router)
 * Language: TypeScript (Strict mode enabled)
 * Agent runtime: OpenCode (`opencode serve`, headless) via `@opencode-ai/sdk` + `@opencode-ai/plugin`
-* Models: Anthropic API (default) or local Ollama — swappable
+* Models: OpenCode Zen free tier `opencode/big-pickle` (default) · Anthropic API · or local Ollama — swappable
 * Simulator: in-process, seedable; HTTP surface `GET /state`, `POST /forecast/*`, `POST /actions/*`
 * Testing: Vitest, Playwright
 

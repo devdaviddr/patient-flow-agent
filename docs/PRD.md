@@ -2,10 +2,10 @@
 
 | | |
 | --- | --- |
-| **Version** | 1.3.0 |
+| **Version** | 1.4.0 |
 | **Status** | Approved |
 | **Owner** | David |
-| **Date** | 2026-06-11 |
+| **Date** | 2026-06-12 |
 
 ---
 
@@ -225,7 +225,7 @@ Guiding principle: **keep it as simple as possible.** This is a portfolio projec
 | **Ward layout & bed counts** | One **ED** as the source of demand, plus **two inpatient wards of 10 beds each**. Small enough to read at a glance, big enough to create a real bottleneck. |
 | **Which actions ship first** | Just **two**: `expedite_script` (pharmacy) and `request_transport`. They cover the two most common blockers and prove the approve-then-act loop. The rest (page allied health, early clean, ward transfer, escalate) are listed but not built in v1. |
 | **Evaluation scenarios** | **Two**: a *normal weekday* baseline and one *flu surge* (more ED arrivals). Enough to show with-vs-without-agent impact without a scenario zoo. |
-| **Default demo model** | **Hosted Claude** via API key — simplest to run and demo. The provider stays swappable, so local Ollama remains an option. |
+| **Default demo model** | **OpenCode Zen free tier** (`opencode/big-pickle`) — zero API key, zero cost, zero local server, so anyone can clone and run the demo. The provider stays swappable, so hosted Claude and local Ollama remain options. |
 | **Approval step in headless mode** | Keep it simple: **gate in our own loop driver.** The UI shows the approval card and the driver only runs the action tool after a human clicks approve — no dependence on OpenCode's internal permission events. |
 
 ---
@@ -258,3 +258,4 @@ Guiding principle: **keep it as simple as possible.** This is a portfolio projec
 | 1.1.0 | 2026-06-11 | Resolved the five open questions (§10); status → Approved. |
 | 1.2.0 | 2026-06-11 | Review fixes: clarified detect-all/act-on-two scope (R5–R6); defined the two KPIs; added item-by-item approval to the workflow; added "agent helps" success criterion (S11); removed stray Action subagent; added this changelog. |
 | 1.3.0 | 2026-06-11 | Expanded §7: AI-harness framing (two nested loops), agent roster (orchestrator + two read-only subagents) with model/tool/permission detail, harness-vs-our-code table, and an enriched architecture diagram showing agent types and swappable model providers. |
+| 1.4.0 | 2026-06-12 | §10: changed the default demo model from hosted Claude to the OpenCode Zen free tier (`opencode/big-pickle`) — zero-key, zero-cost demo; Claude and Ollama remain swappable. Verified end-to-end against the Phase 3 harness. |
