@@ -144,30 +144,36 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Panel title="Bed-board" className="lg:col-span-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
+        <Panel title="Bed-board" className="lg:col-span-5">
           <BedBoard world={world} />
         </Panel>
 
-        <div className="space-y-4">
-          <Panel title={`Proposed interventions (${proposals.length})`}>
-            <div className="scroll-area max-h-[440px] overflow-y-auto pr-1">
-              <ApprovalCards
-                proposals={proposals}
-                busy={busy}
-                onApprove={(id) => decide("/api/driver/approve", id)}
-                onReject={(id) => decide("/api/driver/reject", id)}
-              />
-            </div>
+        <Panel title={`Proposed interventions (${proposals.length})`} className="lg:col-span-4">
+          <div className="scroll-area max-h-[560px] overflow-y-auto pr-1">
+            <ApprovalCards
+              proposals={proposals}
+              busy={busy}
+              onApprove={(id) => decide("/api/driver/approve", id)}
+              onReject={(id) => decide("/api/driver/reject", id)}
+            />
+          </div>
+        </Panel>
+
+        <Panel title={`Flagged — no one-click fix (${flags.length})`} className="lg:col-span-3">
+          <div className="scroll-area max-h-[560px] overflow-y-auto pr-1">
             <FlaggedBlockers flags={flags} />
-          </Panel>
-          <Panel title="Flow KPIs">
-            <KpiPanel results={evalResults} busy={evaluating} onRun={runEval} />
-          </Panel>
-          <Panel title="Ask">
-            <QuestionBox busy={asking} answer={answer} onAsk={ask} />
-          </Panel>
-        </div>
+          </div>
+        </Panel>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel title="Flow KPIs">
+          <KpiPanel results={evalResults} busy={evaluating} onRun={runEval} />
+        </Panel>
+        <Panel title="Ask">
+          <QuestionBox busy={asking} answer={answer} onAsk={ask} />
+        </Panel>
       </div>
 
       <Panel title="Decision timeline">
