@@ -120,7 +120,7 @@ src/
     lib/            #   mock auth + dayjs time helpers
     api/            #   sim · driver (incl. live /assess) · eval routes
 tests/              # safety · determinism · simulator · forecast/actions · driver gate · eval (S11)
-spec/               # SDD records — per-release (v1.0, v1.1) + in-flight (ux-redesign)
+spec/               # SDD records — per-release (0.1.0, 0.2.0) + in-flight (ux-redesign)
 docs/               # PRD · Architecture · OpenCode-Harness · Development Plan · success criteria
 ```
 

@@ -3,10 +3,10 @@
 | | |
 | --- | --- |
 | **Feature** | A professional, light, medical-grade UI: app shell (topbar + collapsible sidebar), login / dashboard / settings / about screens, mock auth — plus readability + live-agent-visibility extras (see §9) |
-| **Target release** | `v1.2` |
+| **Target release** | `0.3.0` |
 | **Status** | ✅ Built & verified — PR #18 (grew well beyond the original plan; see §9) |
 | **Branch** | `feat/ux-redesign` (plan) → `feat/ux-redesign-impl` (code) |
-| **Companions** | `releases/v1.0.md` (current architecture), `docs/PRD.md` (§6 demo-friendliness) |
+| **Companions** | `releases/0.1.0.md` (current architecture), `docs/PRD.md` (§6 demo-friendliness) |
 
 > SDD step 1 (Specify): *what* this feature is and *why*, plus acceptance criteria and scope. No
 > implementation detail — that lives in `implementation.md` (written after this spec + its open
@@ -28,7 +28,7 @@ It changes **only the presentation layer** — the agent, simulator, driver, too
 ## 2. How this fits the solution
 
 - **It is a Web UI (component 5) overhaul.** Same data, same `/api/*` routes, same agent loop — a new
-  shell and theme around the existing dashboard. (`releases/v1.0.md`)
+  shell and theme around the existing dashboard. (`releases/0.1.0.md`)
 - **It changes nothing below the UI.** No agent, simulator, driver, tools, or eval changes; the 38
   existing tests must stay green.
 - **It serves PRD §6 (demo-friendly).** A polished, legible, navigable interface makes the with/without
@@ -90,7 +90,7 @@ It changes **only the presentation layer** — the agent, simulator, driver, too
 
 ## 7. Dependencies & assumptions
 
-- Builds on the current v1.1 UI (`src/app/`) and its `/api/*` routes — all reused unchanged.
+- Builds on the current 0.2.0 UI (`src/app/`) and its `/api/*` routes — all reused unchanged.
 - Pure front-end: no new backend routes required (mock auth is client-side).
 - Assumes desktop browser use for the demo; graceful at common widths, not phone-optimised.
 

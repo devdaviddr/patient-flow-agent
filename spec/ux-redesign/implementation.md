@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Feature** | Light medical theme + app shell (topbar + collapsible sidebar) + login/dashboard/settings + mock auth |
-| **Target release** | `v1.2` |
+| **Target release** | `0.3.0` |
 | **Status** | ✅ Built & verified — PR #18 (see §7 for the as-built map) |
 | **Implements** | `spec.md` (same folder) |
 
