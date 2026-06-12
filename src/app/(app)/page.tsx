@@ -9,7 +9,6 @@ import { ApprovalCards } from "../components/ApprovalCards"
 import { FlaggedBlockers } from "../components/FlaggedBlockers"
 import { DecisionTimeline } from "../components/DecisionTimeline"
 import { KpiPanel } from "../components/KpiPanel"
-import { QuestionBox } from "../components/QuestionBox"
 import { ClockControls } from "../components/ClockControls"
 import { Panel } from "../components/Panel"
 
@@ -32,10 +31,9 @@ export default function DashboardPage() {
   const [flags, setFlags] = useState<Flag[]>([])
   const [records, setRecords] = useState<DecisionRecord[]>([])
   const [evalResults, setEvalResults] = useState<EvalResult[] | null>(null)
-  const [answer, setAnswer] = useState("")
+  const [assessNote, setAssessNote] = useState("")
   const [busy, setBusy] = useState(false)
   const [assessing, setAssessing] = useState(false)
-  const [asking, setAsking] = useState(false)
   const [evaluating, setEvaluating] = useState(false)
   const [playing, setPlaying] = useState(false)
 
@@ -85,9 +83,10 @@ export default function DashboardPage() {
 
   const assess = async () => {
     setAssessing(true)
+    setAssessNote("")
     try {
       const plan = await postJSON<{ error?: string }>("/api/driver/plan")
-      if (plan.error) setAnswer(`Assess failed: ${plan.error} (is opencode serve running?)`)
+      if (plan.error) setAssessNote(`Assess failed: ${plan.error} (is opencode serve running?)`)
       await refresh()
     } finally {
       setAssessing(false)
@@ -113,17 +112,6 @@ export default function DashboardPage() {
     }
   }
 
-  const ask = async (question: string) => {
-    setAsking(true)
-    setAnswer("")
-    try {
-      const res = await postJSON<{ answer?: string; error?: string }>("/api/driver/ask", { question })
-      setAnswer(res.answer ?? `Ask failed: ${res.error} (is opencode serve running?)`)
-    } finally {
-      setAsking(false)
-    }
-  }
-
   return (
     <div className="mx-auto max-w-[1200px] space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -132,6 +120,7 @@ export default function DashboardPage() {
           <p className="text-xs text-muted">
             Perceive → reason → plan → act · synthetic data · human-approved
           </p>
+          {assessNote && <p className="mt-1 text-xs text-blocked">{assessNote}</p>}
         </div>
         <ClockControls
           at={world?.at}
@@ -167,14 +156,9 @@ export default function DashboardPage() {
         </Panel>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel title="Flow KPIs">
-          <KpiPanel results={evalResults} busy={evaluating} onRun={runEval} />
-        </Panel>
-        <Panel title="Ask">
-          <QuestionBox busy={asking} answer={answer} onAsk={ask} />
-        </Panel>
-      </div>
+      <Panel title="Flow KPIs">
+        <KpiPanel results={evalResults} busy={evaluating} onRun={runEval} />
+      </Panel>
 
       <Panel title="Decision timeline">
         <DecisionTimeline records={records} />

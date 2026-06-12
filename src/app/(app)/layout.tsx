@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useAuth } from "../lib/auth"
 import { Topbar } from "../components/shell/Topbar"
 import { Sidebar } from "../components/shell/Sidebar"
+import { ChatWidget } from "../components/ChatWidget"
 
 const SIDEBAR_KEY = "pfo.sidebar"
 
@@ -38,6 +39,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
         <Sidebar collapsed={collapsed} />
         <main className="scroll-area min-w-0 flex-1 overflow-y-auto p-6">{children}</main>
       </div>
+      <ChatWidget />
     </div>
   )
 }
