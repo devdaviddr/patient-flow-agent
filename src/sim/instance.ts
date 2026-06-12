@@ -15,3 +15,9 @@ export function getSimulator(): Simulator {
   }
   return globalForSim.__sim
 }
+
+/** Reset to a fresh world for a named scenario (used by "load scenario"). */
+export function resetSimulator(scenario: ScenarioName = SCENARIO, seed?: number): Simulator {
+  globalForSim.__sim = new Simulator(scenario, seed)
+  return globalForSim.__sim
+}

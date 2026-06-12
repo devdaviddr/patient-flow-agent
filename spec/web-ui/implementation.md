@@ -4,7 +4,7 @@
 | --- | --- |
 | **Feature** | The dashboard + the driver's browser-facing routes |
 | **Version** | 0.1.0 |
-| **Status** | Plan PR — awaiting review/merge |
+| **Status** | ✅ Built & verified (E1–E9) — code PR open |
 | **Implements** | `spec.md` (same folder) |
 
 > SDD step 2 (Plan): *how* the spec is built — layout, key decisions/trade-offs, and how each
