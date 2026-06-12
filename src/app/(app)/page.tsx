@@ -188,7 +188,7 @@ export default function DashboardPage() {
         </CollapsibleColumn>
       </div>
 
-      <Panel title="Flow KPIs">
+      <Panel title="Does the agent help?">
         <KpiPanel results={evalResults} busy={evaluating} onRun={runEval} />
       </Panel>
 

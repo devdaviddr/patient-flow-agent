@@ -36,7 +36,7 @@ export function BedBoard({ world }: { world: WorldState | null }) {
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {beds.map((bed) => {
-                const p = bed.patientId ? byBed.get(bed.patientId) : undefined
+                const p = bed.patientId ? byBed.get(bed.id) : undefined
                 return (
                   <div
                     key={bed.id}
