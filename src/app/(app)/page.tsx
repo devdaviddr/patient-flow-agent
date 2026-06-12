@@ -41,11 +41,13 @@ export default function DashboardPage() {
   const [playing, setPlaying] = useState(false)
   const [flaggedOpen, setFlaggedOpen] = useState(true)
   const [proposedOpen, setProposedOpen] = useState(true)
+  const [assessmentOpen, setAssessmentOpen] = useState(true)
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
     setFlaggedOpen(localStorage.getItem("pfo.flagged") !== "0")
     setProposedOpen(localStorage.getItem("pfo.proposed") !== "0")
+    setAssessmentOpen(localStorage.getItem("pfo.assessment") !== "0")
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [])
 
@@ -165,11 +167,13 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="flex flex-col gap-4 lg:flex-row">
-        <Panel title="Bed-board" className="lg:flex-[5]">
-          <BedBoard world={world} />
-        </Panel>
+      {/* Bed-board — its own row */}
+      <Panel title="Bed-board">
+        <BedBoard world={world} />
+      </Panel>
 
+      {/* Interventions · Flagged · Assessment — collapsible columns */}
+      <div className="flex flex-col gap-4 lg:flex-row">
         <CollapsibleColumn
           title="Proposed interventions"
           count={proposals.length}
@@ -198,13 +202,16 @@ export default function DashboardPage() {
             <FlaggedBlockers flags={flags} />
           </div>
         </CollapsibleColumn>
-      </div>
 
-      {(assessment || assessing) && (
-        <Panel title="Assessment — what the agent is doing">
+        <CollapsibleColumn
+          title="Assessment — what the agent is doing"
+          open={assessmentOpen}
+          onToggle={() => toggleCol("pfo.assessment", setAssessmentOpen)}
+          className={assessmentOpen ? "lg:flex-[5]" : "lg:w-12 lg:flex-none"}
+        >
           <AssessmentPanel assessment={assessment} onClear={() => setAssessment(null)} />
-        </Panel>
-      )}
+        </CollapsibleColumn>
+      </div>
 
       <Panel title="Does the agent help?">
         <KpiPanel results={evalResults} busy={evaluating} onRun={runEval} />
