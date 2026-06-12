@@ -1,5 +1,5 @@
 # Next.js app: UI + loop driver + in-process simulator + eval harness
-FROM node:20-slim
+FROM node:22-slim
 
 WORKDIR /app
 
@@ -7,10 +7,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci || npm install
 
-# App source
+# App source (node_modules/.next excluded via .dockerignore)
 COPY . .
 
 EXPOSE 3000
 
-# Dev server by default; override in compose/CI for production builds
-CMD ["npm", "run", "dev"]
+# Dev server, bound to 0.0.0.0 so it's reachable from the host and the opencode container
+CMD ["npm", "run", "dev", "--", "--hostname", "0.0.0.0"]
