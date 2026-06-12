@@ -177,14 +177,14 @@ export default function DashboardPage() {
         <BedBoard world={world} />
       </Panel>
 
-      {/* ED queue · Discharge queue — collapsible */}
+      {/* ED queue · Discharge queue · Proposed · Flagged · Assessment — one collapsible row */}
       <div className="flex flex-col gap-4 lg:flex-row">
         <CollapsibleColumn
           title="ED queue"
           count={world?.edQueue.length}
           open={edQueueOpen}
           onToggle={() => toggleCol("pfo.edqueue", setEdQueueOpen)}
-          className={edQueueOpen ? "lg:flex-1" : "lg:w-12 lg:flex-none"}
+          className={edQueueOpen ? "lg:flex-[2]" : "lg:w-12 lg:flex-none"}
         >
           <EdQueue world={world} />
         </CollapsibleColumn>
@@ -194,20 +194,17 @@ export default function DashboardPage() {
           count={world ? world.patients.filter((p) => p.predictedDischarge).length : undefined}
           open={dischargeOpen}
           onToggle={() => toggleCol("pfo.discharge", setDischargeOpen)}
-          className={dischargeOpen ? "lg:flex-1" : "lg:w-12 lg:flex-none"}
+          className={dischargeOpen ? "lg:flex-[2]" : "lg:w-12 lg:flex-none"}
         >
           <DischargeQueue world={world} />
         </CollapsibleColumn>
-      </div>
 
-      {/* Interventions · Flagged · Assessment — collapsible columns */}
-      <div className="flex flex-col gap-4 lg:flex-row">
         <CollapsibleColumn
           title="Proposed interventions"
           count={proposals.length}
           open={proposedOpen}
           onToggle={() => toggleCol("pfo.proposed", setProposedOpen)}
-          className={proposedOpen ? "lg:flex-[4]" : "lg:w-12 lg:flex-none"}
+          className={proposedOpen ? "lg:flex-[3]" : "lg:w-12 lg:flex-none"}
         >
           <div className="scroll-area max-h-[560px] overflow-y-auto pr-1">
             <ApprovalCards
@@ -224,7 +221,7 @@ export default function DashboardPage() {
           count={flags.length}
           open={flaggedOpen}
           onToggle={() => toggleCol("pfo.flagged", setFlaggedOpen)}
-          className={flaggedOpen ? "lg:flex-[3]" : "lg:w-12 lg:flex-none"}
+          className={flaggedOpen ? "lg:flex-[2]" : "lg:w-12 lg:flex-none"}
         >
           <div className="scroll-area max-h-[560px] overflow-y-auto pr-1">
             <FlaggedBlockers flags={flags} />
@@ -235,7 +232,7 @@ export default function DashboardPage() {
           title="Assessment — what the agent is doing"
           open={assessmentOpen}
           onToggle={() => toggleCol("pfo.assessment", setAssessmentOpen)}
-          className={assessmentOpen ? "lg:flex-[5]" : "lg:w-12 lg:flex-none"}
+          className={assessmentOpen ? "lg:flex-[3]" : "lg:w-12 lg:flex-none"}
         >
           <AssessmentPanel assessment={assessment} onClear={() => setAssessment(null)} />
         </CollapsibleColumn>
