@@ -4,7 +4,7 @@
 | --- | --- |
 | **Feature** | Light medical theme + app shell (topbar + collapsible sidebar) + login/dashboard/settings + mock auth |
 | **Target release** | `v1.2` |
-| **Status** | Plan PR — awaiting review/merge |
+| **Status** | ✅ Built & verified — PR #18 (see §7 for the as-built map) |
 | **Implements** | `spec.md` (same folder) |
 
 > SDD step 2 (Plan): *how* the spec is built — layout, decisions/trade-offs, and how each acceptance
@@ -127,3 +127,48 @@ Mostly a **live walkthrough** (UI), plus the existing suite proving no regressio
 
 Real auth/users/sessions, any agent/sim/driver/eval change, mobile-first responsive, backend-persisted
 settings, and any new product capability. Presentation + navigation only.
+
+## 7. As-built map (PR #18)
+
+The shell + the §9 extras as actually shipped. Presentation-only except the two noted items.
+
+```
+src/app/
+  layout.tsx                    # root: Inter (@fontsource), <AuthProvider>, globals.css
+  globals.css                   # Tailwind v4 @theme — light clinical palette tokens
+  login/page.tsx                # mock sign-in (standalone, outside the shell)
+  (app)/
+    layout.tsx                  # auth guard + AppShell (Topbar + Sidebar + ChatWidget) + scroll
+    page.tsx                    # dashboard: bed-board · ED/discharge queues · accordion columns · KPIs · timeline
+    settings/page.tsx           # scenario/seed · active model · mock profile
+    about/page.tsx              # business flow + architecture + KPIs, with Mermaid diagrams
+  components/
+    shell/Topbar.tsx, Sidebar.tsx   # app name + avatar; nav (Dashboard/About/Settings) + logout; collapse
+    Panel.tsx, CollapsibleColumn.tsx # card + the accordion column (banner when collapsed)
+    BedBoard.tsx                # beds w/ patient name + UR; 10-across on wide screens
+    Queues.tsx                  # EdQueue + DischargeQueue (patient cards)
+    ApprovalCards.tsx           # friendly action + name(UR) + plain-English line + agent rationale
+    FlaggedBlockers.tsx, KpiPanel.tsx, DecisionTimeline.tsx
+    AssessmentPanel.tsx         # live agent log (start time, status, tool calls + results)
+    ChatWidget.tsx              # floating Q&A overlay
+    Mermaid.tsx                 # themed client Mermaid renderer (dynamic import)
+  lib/
+    auth.tsx                    # mock AuthProvider + useAuth + MOCK_USER (localStorage)
+    time.ts                     # dayjs helpers: fmtDateTime/fmtTime/fmtClock + humanizeTimes
+
+src/sim/                        # patient.ts/state.ts: + patientName(id)/patientUr(id) (deterministic)
+src/driver/                     # adapter.ts: planViaOrchestratorLogged() (polls session messages → live log)
+                                # driver.ts: startAssessment()/assessment() background flow
+src/app/api/driver/assess, assessment   # start (background) + poll the live assessment
+```
+
+**Two non-cosmetic additions** (both keep the safety/determinism tests green and the SDK isolated to
+`adapter.ts`): deterministic patient name/UR in `src/sim`, and the background **assessment** flow that
+streams the agent's tool calls + results by polling the OpenCode session messages.
+
+### Deps added
+`tailwindcss` + `@tailwindcss/postcss` (v4), `lucide-react`, `@fontsource/inter`, `dayjs`, `mermaid`.
+
+### Verification
+`typecheck` · `lint` · `build` clean; **38 tests** green (agent/sim/driver/eval logic unchanged);
+live-verified in Docker (login → dashboard → Assess streams the agent's activity → approve → KPIs).

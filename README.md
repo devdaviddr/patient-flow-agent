@@ -84,12 +84,13 @@ work with just `npm run dev`; **Assess** and **Ask** additionally need `opencode
 
 ## Demo flow
 
-1. `make dev`, open **http://localhost:3000**.
-2. Press **Step 30m** a few times — watch the bed-board change as patients arrive, are admitted, and discharge.
-3. Press **Assess** — the agent perceives the hospital, detects capacity gaps, and proposes ranked fixes as **approval cards**.
-4. **Approve** a card — the action runs, a blocker clears, the board updates, and the **decision timeline** records it. **Reject** changes nothing.
-5. Ask a question in the **Ask** box ("why is 4B blocked?").
-6. Press **Run eval** in the KPI panel — see the with/without-agent comparison.
+1. `make dev`, open **http://localhost:3000** and **sign in** (mock login — any credentials work).
+2. The **dashboard** (light medical theme): the **bed-board** up top (patients by name + UR), then a row of working columns — **ED queue · Discharge queue · Proposed interventions · Flagged · Assessment** (one open at a time, the rest as side banners).
+3. Press **Step 30m** (or **Play** for real-time) — watch patients arrive into the ED queue, get admitted, and progress toward discharge.
+4. Press **Assess** — the **Assessment** panel streams the agent's live activity (each tool call + result, incl. subagent delegation); when it finishes, ranked fixes appear as plain-English **approval cards** (e.g. *"Chase pharmacy · Grace Reid (UR-424329)"*).
+5. **Approve** a card — the blocker clears, the board updates, and the **decision timeline** records it. **Reject** changes nothing.
+6. Ask a question via the floating **chat** button ("why is 4B blocked?"). Read **About** in the sidebar for how it all works.
+7. Press **Run the comparison** in *Does the agent help?* — the with/without-agent KPIs.
 
 ## Results — does the agent help?
 
@@ -112,9 +113,14 @@ src/
   sim/              # the Simulator — seedable clock, typed events, transparent forecasts
   driver/           # the loop driver + the single @opencode-ai/sdk adapter
   eval/             # headless with/without-agent KPI runner
-  app/              # Next.js UI — bed-board · approval cards · timeline · KPI panel · /api routes
+  app/              # Next.js UI (light medical theme, Tailwind)
+    (app)/          #   auth-gated shell: dashboard · settings · about
+    login/          #   mock sign-in
+    components/     #   shell (topbar/sidebar) · bed-board · queues · cards · chat · live assessment · mermaid
+    lib/            #   mock auth + dayjs time helpers
+    api/            #   sim · driver (incl. live /assess) · eval routes
 tests/              # safety · determinism · simulator · forecast/actions · driver gate · eval (S11)
-spec/               # spec-driven-development records, condensed per release (v1.0, v1.1)
+spec/               # SDD records — per-release (v1.0, v1.1) + in-flight (ux-redesign)
 docs/               # PRD · Architecture · OpenCode-Harness · Development Plan · success criteria
 ```
 

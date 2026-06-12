@@ -214,6 +214,18 @@ export default function DashboardPage() {
         const open = columns.find((c) => c.id === active)
         return (
           <div className="flex flex-col gap-4 lg:flex-row">
+            {open && (
+              <CollapsibleColumn
+                key={open.id}
+                title={open.title}
+                count={open.count}
+                open
+                onToggle={() => setActiveCol(open.id)}
+                className="lg:flex-1"
+              >
+                {open.body}
+              </CollapsibleColumn>
+            )}
             {columns
               .filter((c) => c.id !== active)
               .map((c) => (
@@ -228,18 +240,6 @@ export default function DashboardPage() {
                   {c.body}
                 </CollapsibleColumn>
               ))}
-            {open && (
-              <CollapsibleColumn
-                key={open.id}
-                title={open.title}
-                count={open.count}
-                open
-                onToggle={() => setActiveCol(open.id)}
-                className="lg:flex-1"
-              >
-                {open.body}
-              </CollapsibleColumn>
-            )}
           </div>
         )
       })()}
