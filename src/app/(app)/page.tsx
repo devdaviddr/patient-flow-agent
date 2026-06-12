@@ -43,12 +43,16 @@ export default function DashboardPage() {
   const [flaggedOpen, setFlaggedOpen] = useState(true)
   const [proposedOpen, setProposedOpen] = useState(true)
   const [assessmentOpen, setAssessmentOpen] = useState(true)
+  const [edQueueOpen, setEdQueueOpen] = useState(true)
+  const [dischargeOpen, setDischargeOpen] = useState(true)
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
     setFlaggedOpen(localStorage.getItem("pfo.flagged") !== "0")
     setProposedOpen(localStorage.getItem("pfo.proposed") !== "0")
     setAssessmentOpen(localStorage.getItem("pfo.assessment") !== "0")
+    setEdQueueOpen(localStorage.getItem("pfo.edqueue") !== "0")
+    setDischargeOpen(localStorage.getItem("pfo.discharge") !== "0")
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [])
 
@@ -173,16 +177,27 @@ export default function DashboardPage() {
         <BedBoard world={world} />
       </Panel>
 
-      {/* ED queue · Discharge queue */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Panel title={`ED queue${world ? ` (${world.edQueue.length})` : ""}`}>
+      {/* ED queue · Discharge queue — collapsible */}
+      <div className="flex flex-col gap-4 lg:flex-row">
+        <CollapsibleColumn
+          title="ED queue"
+          count={world?.edQueue.length}
+          open={edQueueOpen}
+          onToggle={() => toggleCol("pfo.edqueue", setEdQueueOpen)}
+          className={edQueueOpen ? "lg:flex-1" : "lg:w-12 lg:flex-none"}
+        >
           <EdQueue world={world} />
-        </Panel>
-        <Panel
-          title={`Discharge queue${world ? ` (${world.patients.filter((p) => p.predictedDischarge).length})` : ""}`}
+        </CollapsibleColumn>
+
+        <CollapsibleColumn
+          title="Discharge queue"
+          count={world ? world.patients.filter((p) => p.predictedDischarge).length : undefined}
+          open={dischargeOpen}
+          onToggle={() => toggleCol("pfo.discharge", setDischargeOpen)}
+          className={dischargeOpen ? "lg:flex-1" : "lg:w-12 lg:flex-none"}
         >
           <DischargeQueue world={world} />
-        </Panel>
+        </CollapsibleColumn>
       </div>
 
       {/* Interventions · Flagged · Assessment — collapsible columns */}
