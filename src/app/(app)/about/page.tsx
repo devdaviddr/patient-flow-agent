@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { Mermaid } from "../../components/Mermaid"
 
 function Card({
   title,
@@ -118,21 +119,21 @@ export default function AboutPage() {
 
       {/* Flow diagram */}
       <Card eyebrow="At a glance" title="The flow, end to end">
-        <div className="overflow-x-auto rounded-lg border border-border bg-surface-2 p-4">
-          <pre className="text-[12px] leading-5 text-text">
-{`   ED arrivals          Wards (fixed beds)         Discharge
-       │                      │                        │
-       ▼                      ▼                        ▼
-  ┌─────────┐  needs bed ┌──────────┐  blocked by  ┌──────────┐
-  │ Waiting │ ─────────▶ │ Occupied │ ───────────▶ │  Ready   │
-  └─────────┘            └──────────┘              │ to leave │
-       ▲                                           └────┬─────┘
-       │           bed freed when blocker clears        │
-       └───────────────────────────────────────────────┘
-
-  Blockers:  [pharmacy script]  [transport]   ← agent can action
-             [allied health]    [placement]   ← flagged for a human`}
-          </pre>
+        <div className="rounded-lg border border-border bg-surface-2 p-4">
+          <Mermaid
+            chart={`flowchart LR
+  ED([ED arrival]) --> WAIT["Waiting<br/>for a bed"]
+  WAIT -->|needs a bed| OCC["Admitted<br/>bed occupied"]
+  OCC --> RDY["Ready to leave"]
+  RDY -->|blocker clears| FREE["Bed freed<br/>& cleaned"]
+  FREE -.->|opens a bed| WAIT
+  RDY -.->|"pharmacy · transport"| ACT["Agent proposes a fix<br/>(human approves)"]
+  RDY -.->|"allied health · placement"| FLAG["Flagged<br/>for a human"]
+  class ACT act
+  class FLAG flag
+  classDef act fill:#eaf2fd,stroke:#2c7be5,color:#1a2b3c
+  classDef flag fill:#fdeef0,stroke:#d6455b,color:#1a2b3c`}
+          />
         </div>
       </Card>
 
@@ -190,19 +191,27 @@ export default function AboutPage() {
           external reasoning harness does the thinking within a single tick of that clock.
         </p>
 
-        <div className="overflow-x-auto rounded-lg border border-border bg-surface-2 p-4">
-          <pre className="text-[12px] leading-5 text-text">
-{`  OUTER LOOP  (we own the world + the clock)
-  ┌──────────────────────────────────────────────────────┐
-  │  tick ──▶ ask the agent ──▶ collect proposals ──▶     │
-  │            │                                  human    │
-  │            ▼                                  approves  │
-  │   INNER LOOP (the harness owns the reasoning)          │
-  │   ┌──────────────────────────────────────────┐        │
-  │   │  orchestrator + read-only specialists     │        │
-  │   └──────────────────────────────────────────┘        │
-  └──────────────────────────────────────────────────────┘`}
-          </pre>
+        <div className="rounded-lg border border-border bg-surface-2 p-4">
+          <Mermaid
+            chart={`flowchart TB
+  subgraph OUTER["Our app — the environment (we own the world + clock)"]
+    direction TB
+    UI["Web UI"]
+    DRV["Loop driver<br/>owns the clock · the approval gate"]
+    SIM["Simulator<br/>the hospital"]
+  end
+  subgraph INNER["OpenCode harness — reasoning within one tick"]
+    direction TB
+    ORCH["Orchestrator"]
+    SUB["Discharge + Demand<br/>read-only specialists"]
+  end
+  UI --- DRV
+  DRV -->|one prompt per tick| ORCH
+  ORCH --> SUB
+  ORCH -->|read-only tool calls| SIM
+  DRV -->|approved action only| SIM
+  SIM -->|new bed position| DRV`}
+          />
         </div>
 
         <p className="pt-1 font-medium">The five components:</p>
