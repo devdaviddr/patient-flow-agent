@@ -5,6 +5,7 @@ import type { WorldState } from "@/sim"
 import type { Assessment, DecisionRecord, Flag, Intervention } from "@/driver"
 import type { EvalResult } from "@/eval"
 import { BedBoard } from "../components/BedBoard"
+import { EdQueue, DischargeQueue } from "../components/Queues"
 import { AssessmentPanel } from "../components/AssessmentPanel"
 import { ApprovalCards } from "../components/ApprovalCards"
 import { FlaggedBlockers } from "../components/FlaggedBlockers"
@@ -171,6 +172,18 @@ export default function DashboardPage() {
       <Panel title="Bed-board">
         <BedBoard world={world} />
       </Panel>
+
+      {/* ED queue · Discharge queue */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <Panel title={`ED queue${world ? ` (${world.edQueue.length})` : ""}`}>
+          <EdQueue world={world} />
+        </Panel>
+        <Panel
+          title={`Discharge queue${world ? ` (${world.patients.filter((p) => p.predictedDischarge).length})` : ""}`}
+        >
+          <DischargeQueue world={world} />
+        </Panel>
+      </div>
 
       {/* Interventions · Flagged · Assessment — collapsible columns */}
       <div className="flex flex-col gap-4 lg:flex-row">

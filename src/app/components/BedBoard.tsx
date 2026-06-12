@@ -1,5 +1,4 @@
 import type { Patient, WorldState } from "@/sim"
-import { patientName } from "@/sim"
 import { fmtTime } from "../lib/time"
 
 const STATUS_ACCENT: Record<string, string> = {
@@ -68,21 +67,6 @@ export function BedBoard({ world }: { world: WorldState | null }) {
           </div>
         )
       })}
-      <div className="text-sm text-muted">
-        ED queue ({world.edQueue.length}):{" "}
-        {world.edQueue.length === 0 ? (
-          "—"
-        ) : (
-          world.edQueue.map((id) => (
-            <span
-              key={id}
-              className="mr-1 inline-block rounded-md border border-border bg-surface-2 px-2 py-0.5 text-xs text-text"
-            >
-              {patientName(id)}
-            </span>
-          ))
-        )}
-      </div>
     </div>
   )
 }
