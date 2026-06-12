@@ -4,7 +4,7 @@
 | --- | --- |
 | **Feature** | Loop driver, real approval gate, re-planning, decision records |
 | **Version** | 0.1.0 |
-| **Status** | Plan PR — awaiting review/merge |
+| **Status** | ✅ Built & verified (D1–D8) — code PR open |
 | **Implements** | `spec.md` (same folder) |
 
 > SDD step 2 (Plan): *how* the spec is built — layout, key decisions/trade-offs, and how each

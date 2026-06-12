@@ -5,7 +5,7 @@
 | **Feature** | The outer control loop: clock, per-tick prompting, the real human-approval gate, re-planning, decision records |
 | **Phase** | 4 of the development plan |
 | **Version** | 0.1.0 |
-| **Status** | Plan PR — awaiting review/merge |
+| **Status** | ✅ Built & verified (D1–D8) — code PR open |
 | **Branch** | `feat/loop-driver` (plan) → `feat/loop-driver-impl` (code) |
 | **Companions** | `Architecture.md` (§4.4, §6), `OpenCode-Harness.md` (§7–8), `PRD.md` (R7, R8, R10, S6, S7, S9), `development-Plan.md` (Phase 4) |
 
