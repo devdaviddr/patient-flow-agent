@@ -7,6 +7,7 @@ export function ClockControls({
   at,
   busy,
   assessing,
+  assessed,
   playing,
   onStep,
   onAssess,
@@ -15,6 +16,7 @@ export function ClockControls({
   at: string | undefined
   busy: boolean
   assessing: boolean
+  assessed: boolean
   playing: boolean
   onStep: () => void
   onAssess: () => void
@@ -47,7 +49,7 @@ export function ClockControls({
         className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-70"
       >
         {assessing && <Loader2 size={15} className="animate-spin" />}
-        {assessing ? "Assessing…" : "Assess"}
+        {assessing ? "Assessing…" : assessed ? "Re-assess" : "Assess"}
       </button>
     </div>
   )

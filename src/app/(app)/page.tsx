@@ -106,6 +106,7 @@ export default function DashboardPage() {
   const assess = async () => {
     setAssessing(true)
     setAssessNote("")
+    setAssessment(null) // clear the previous run's log
     await fetch("/api/driver/assess", { method: "POST" })
     // Poll the live assessment until it finishes.
     for (;;) {
@@ -156,6 +157,7 @@ export default function DashboardPage() {
           at={world?.at}
           busy={busy}
           assessing={assessing}
+          assessed={!!assessment}
           playing={playing}
           onStep={step}
           onAssess={assess}
@@ -200,7 +202,7 @@ export default function DashboardPage() {
 
       {(assessment || assessing) && (
         <Panel title="Assessment — what the agent is doing">
-          <AssessmentPanel assessment={assessment} />
+          <AssessmentPanel assessment={assessment} onClear={() => setAssessment(null)} />
         </Panel>
       )}
 

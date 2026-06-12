@@ -89,10 +89,15 @@ export async function planViaOrchestrator(promptBody: string): Promise<ProposedP
   }
 }
 
+function truncate(s: string, n = 140): string {
+  const oneLine = s.replace(/\s+/g, " ").trim()
+  return oneLine.length > n ? `${oneLine.slice(0, n)}…` : oneLine
+}
+
 /**
  * Same as planViaOrchestrator, but reports the agent's live activity (each tool call
- * it makes) via onLog while it runs — by polling the session's messages. Best-effort:
- * logging never throws and never blocks the plan.
+ * and its result) via onLog while it runs — by polling the session's messages.
+ * Best-effort: logging never throws and never blocks the plan.
  */
 export async function planViaOrchestratorLogged(
   promptBody: string,
@@ -100,12 +105,17 @@ export async function planViaOrchestratorLogged(
 ): Promise<ProposedPlan> {
   const id = await getSessionId()
   const client = getClient()
-  const seen = new Set<string>()
+  const called = new Set<string>()
+  const resulted = new Set<string>()
 
   // Snapshot existing message parts so we only report THIS assessment's activity.
   try {
     const existing = await client.session.messages({ path: { id } })
-    for (const m of existing.data ?? []) for (const p of m.parts) seen.add(p.id)
+    for (const m of existing.data ?? [])
+      for (const p of m.parts) {
+        called.add(p.id)
+        resulted.add(p.id)
+      }
   } catch {
     /* ignore */
   }
@@ -117,8 +127,9 @@ export async function planViaOrchestratorLogged(
         const res = await client.session.messages({ path: { id } })
         for (const m of res.data ?? []) {
           for (const p of m.parts) {
-            if (p.type === "tool" && !seen.has(p.id)) {
-              seen.add(p.id)
+            if (p.type !== "tool") continue
+            if (!called.has(p.id)) {
+              called.add(p.id)
               const input = "input" in p.state ? p.state.input : undefined
               const args = input
                 ? Object.entries(input)
@@ -126,6 +137,17 @@ export async function planViaOrchestratorLogged(
                     .join(" ")
                 : ""
               onLog(`called ${p.tool}${args ? ` · ${args}` : ""}`)
+            }
+            if (
+              (p.state.status === "completed" || p.state.status === "error") &&
+              !resulted.has(p.id)
+            ) {
+              resulted.add(p.id)
+              if (p.state.status === "completed") {
+                onLog(`  ↳ ${p.tool} → ${truncate(String(p.state.output))}`)
+              } else {
+                onLog(`  ↳ ${p.tool} failed`)
+              }
             }
           }
         }

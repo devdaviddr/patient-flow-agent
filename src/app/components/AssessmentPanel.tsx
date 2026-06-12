@@ -1,6 +1,6 @@
 "use client"
 
-import { Loader2 } from "lucide-react"
+import { Loader2, X } from "lucide-react"
 import type { Assessment } from "@/driver"
 import { fmtClock, fmtClockTime } from "../lib/time"
 
@@ -10,7 +10,13 @@ const STATUS = {
   error: { label: "error", cls: "bg-blocked/10 text-blocked" },
 } as const
 
-export function AssessmentPanel({ assessment }: { assessment: Assessment | null }) {
+export function AssessmentPanel({
+  assessment,
+  onClear,
+}: {
+  assessment: Assessment | null
+  onClear: () => void
+}) {
   if (!assessment) {
     return (
       <div className="text-sm text-muted">
@@ -29,6 +35,14 @@ export function AssessmentPanel({ assessment }: { assessment: Assessment | null 
           <span className="text-muted">
             · {assessment.interventions} proposed · {assessment.flags} flagged
           </span>
+        )}
+        {assessment.status !== "running" && (
+          <button
+            onClick={onClear}
+            className="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-muted hover:bg-surface-2 hover:text-text"
+          >
+            <X size={13} /> Clear
+          </button>
         )}
       </div>
 
