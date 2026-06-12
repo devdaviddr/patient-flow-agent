@@ -6,7 +6,7 @@ import type { DecisionRecord, Flag, Intervention } from "@/driver"
 import type { EvalResult } from "@/eval"
 import { BedBoard } from "../components/BedBoard"
 import { ApprovalCards } from "../components/ApprovalCards"
-import { FlaggedBlockers } from "../components/FlaggedBlockers"
+import { FlaggedColumn } from "../components/FlaggedColumn"
 import { DecisionTimeline } from "../components/DecisionTimeline"
 import { KpiPanel } from "../components/KpiPanel"
 import { ClockControls } from "../components/ClockControls"
@@ -36,6 +36,19 @@ export default function DashboardPage() {
   const [assessing, setAssessing] = useState(false)
   const [evaluating, setEvaluating] = useState(false)
   const [playing, setPlaying] = useState(false)
+  const [flaggedOpen, setFlaggedOpen] = useState(true)
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFlaggedOpen(localStorage.getItem("pfo.flagged") !== "0")
+  }, [])
+
+  const toggleFlagged = () =>
+    setFlaggedOpen((o) => {
+      const next = !o
+      localStorage.setItem("pfo.flagged", next ? "1" : "0")
+      return next
+    })
 
   const refresh = useCallback(async () => {
     const [w, p, f, r] = await Promise.all([
@@ -133,12 +146,12 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
-        <Panel title="Bed-board" className="lg:col-span-5">
+      <div className="flex flex-col gap-4 lg:flex-row">
+        <Panel title="Bed-board" className="lg:flex-[5]">
           <BedBoard world={world} />
         </Panel>
 
-        <Panel title={`Proposed interventions (${proposals.length})`} className="lg:col-span-4">
+        <Panel title={`Proposed interventions (${proposals.length})`} className="lg:flex-[4]">
           <div className="scroll-area max-h-[560px] overflow-y-auto pr-1">
             <ApprovalCards
               proposals={proposals}
@@ -149,11 +162,12 @@ export default function DashboardPage() {
           </div>
         </Panel>
 
-        <Panel title={`Flagged — no one-click fix (${flags.length})`} className="lg:col-span-3">
-          <div className="scroll-area max-h-[560px] overflow-y-auto pr-1">
-            <FlaggedBlockers flags={flags} />
-          </div>
-        </Panel>
+        <FlaggedColumn
+          flags={flags}
+          open={flaggedOpen}
+          onToggle={toggleFlagged}
+          className={flaggedOpen ? "lg:flex-[3]" : "lg:w-12 lg:flex-none"}
+        />
       </div>
 
       <Panel title="Flow KPIs">
