@@ -5,7 +5,7 @@
 | **Feature** | The human surface — bed-board, approval cards, decision timeline, KPI panel, Q&A, clock controls |
 | **Phase** | 6 of the development plan |
 | **Version** | 0.1.0 |
-| **Status** | Plan PR — awaiting review/merge |
+| **Status** | ✅ Built & verified (E1–E9) — code PR open |
 | **Branch** | `feat/web-ui` (plan) → `feat/web-ui-impl` (code) |
 | **Companions** | `Architecture.md` (§4.5), `PRD.md` (R7, R9, R10, §6), `development-Plan.md` (Phase 6) |
 

@@ -44,6 +44,13 @@ export async function promptOrchestrator(text: string): Promise<string> {
     .join("")
 }
 
+/** Plain-language Q&A (R9): ask the orchestrator a question, return its prose answer. */
+export async function askOrchestrator(question: string): Promise<string> {
+  return promptOrchestrator(
+    `${question}\n\nAnswer in plain language from the live picture. Do not return JSON; do not call any action tool.`,
+  )
+}
+
 // The instruction appended each tick so the orchestrator returns a parseable plan.
 const PLAN_INSTRUCTION = `
 Now return ONLY a JSON object (in a \`\`\`json fenced block) of this exact shape — no prose after it:
