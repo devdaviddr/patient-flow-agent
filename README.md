@@ -114,7 +114,7 @@ src/
   eval/             # headless with/without-agent KPI runner
   app/              # Next.js UI — bed-board · approval cards · timeline · KPI panel · /api routes
 tests/              # safety · determinism · simulator · forecast/actions · driver gate · eval (S11)
-spec/               # per-feature spec.md + implementation.md (spec-driven development)
+spec/               # spec-driven-development records, condensed per release (v1.0, v1.1)
 docs/               # PRD · Architecture · OpenCode-Harness · Development Plan · success criteria
 ```
 
