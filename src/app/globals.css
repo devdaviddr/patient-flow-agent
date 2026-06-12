@@ -110,6 +110,12 @@ button.reject { border-color: var(--red); color: var(--red); }
 .kpi .value { font-size: 20px; font-weight: 600; margin-top: 4px; }
 .kpi .note { color: var(--muted); font-size: 10px; margin-top: 2px; }
 
+/* flagged (non-actionable) blockers */
+.flagged { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.flagged-head { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; }
+.flag { font-size: 12px; color: var(--muted); padding: 3px 0; }
+.flag b { color: var(--text); }
+
 /* eval results */
 .eval-scenario { border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 10px; background: var(--panel-2); }
 .eval-head { font-weight: 600; margin-bottom: 6px; }

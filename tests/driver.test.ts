@@ -29,6 +29,14 @@ function planFor(sim: Simulator): { plan: ProposedPlan; targetId: string } {
         status: "proposed",
       },
     ],
+    flags: [
+      {
+        patientId: "p-x",
+        wardId: blocked.wardId,
+        blocker: "placement",
+        reason: "awaiting a placement destination — no one-click fix",
+      },
+    ],
   }
   return { plan, targetId: blocked.id }
 }
@@ -62,6 +70,23 @@ describe("plan parsing (D2)", () => {
   it("rejects malformed plans", () => {
     expect(() => parsePlan("no json here")).toThrow()
   })
+
+  it("flags are optional — a plan without them parses to []", () => {
+    const text = "```json\n" + JSON.stringify({ gaps: [], interventions: [] }) + "\n```"
+    expect(parsePlan(text).flags).toEqual([])
+  })
+
+  it("parses non-actionable flags when present", () => {
+    const text =
+      "```json\n" +
+      JSON.stringify({
+        gaps: [],
+        interventions: [],
+        flags: [{ patientId: "p-3", wardId: "4B", blocker: "placement", reason: "no destination" }],
+      }) +
+      "\n```"
+    expect(parsePlan(text).flags[0].blocker).toBe("placement")
+  })
 })
 
 describe("approval gate (D3 / S6)", () => {
@@ -93,6 +118,18 @@ describe("approval gate (D3 / S6)", () => {
     const before = JSON.stringify(sim.getState())
     await driverWith(plan, sim).plan()
     expect(JSON.stringify(sim.getState())).toBe(before)
+  })
+})
+
+describe("non-actionable flags (G1)", () => {
+  it("driver exposes the flags from the plan", async () => {
+    const sim = new Simulator("normal-weekday")
+    const { plan } = planFor(sim)
+    const driver = driverWith(plan, sim)
+    await driver.plan()
+    const flags = driver.flags()
+    expect(flags).toHaveLength(1)
+    expect(flags[0].blocker).toBe("placement")
   })
 })
 

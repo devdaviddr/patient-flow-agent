@@ -19,9 +19,17 @@ const InterventionInputSchema = z.object({
   rationale: z.string(),
 })
 
+const FlagSchema = z.object({
+  patientId: z.string(),
+  wardId: z.string(),
+  blocker: z.enum(["allied_health", "placement"]),
+  reason: z.string(),
+})
+
 const PlanInputSchema = z.object({
   gaps: z.array(GapSchema),
   interventions: z.array(InterventionInputSchema),
+  flags: z.array(FlagSchema).optional(), // sparse replies still parse
 })
 
 /** Pull the last fenced ```json block, or fall back to the outermost {...}. */
@@ -43,5 +51,6 @@ export function parsePlan(text: string): ProposedPlan {
       id: `iv-${i + 1}`,
       status: "proposed" as const,
     })),
+    flags: parsed.flags ?? [],
   }
 }

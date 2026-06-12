@@ -53,6 +53,11 @@ export async function askOrchestrator(question: string): Promise<string> {
 
 // The instruction appended each tick so the orchestrator returns a parseable plan.
 const PLAN_INSTRUCTION = `
+For every not-ready discharge, identify its blocker across all four types
+(pharmacy_script, transport, allied_health, placement). You may ask @discharge for the detail.
+Propose actions ONLY for pharmacy_script (expedite_script) and transport (request_transport).
+List every allied_health / placement blocker under "flags" so it is visible without a one-click fix.
+
 Now return ONLY a JSON object (in a \`\`\`json fenced block) of this exact shape — no prose after it:
 {
   "gaps": [{ "wardId": string, "atTime": ISO8601, "projectedDeficit": number, "factors": string[] }],
@@ -60,6 +65,10 @@ Now return ONLY a JSON object (in a \`\`\`json fenced block) of this exact shape
     "type": "expedite_script" | "request_transport",
     "targetPatientId": string, "addressesGap": string,
     "impactScore": number, "rationale": string
+  }],
+  "flags": [{
+    "patientId": string, "wardId": string,
+    "blocker": "allied_health" | "placement", "reason": string
   }]
 }
 Rank interventions by impactScore, highest first. Propose only; do not call any action tool.`
