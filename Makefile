@@ -1,7 +1,7 @@
 # Patient Flow Orchestrator
 .DEFAULT_GOAL := help
 
-.PHONY: help install dev test e2e eval up up-local down logs clean
+.PHONY: help install dev test eval up up-local down logs clean
 
 help: ## List available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -10,21 +10,18 @@ help: ## List available commands
 install: ## Install dependencies
 	npm install
 
-dev: ## Run opencode serve + the Next.js dev server together
+dev: ## Run opencode serve (pointed at the sim) + the Next.js dev server together
 	@command -v opencode >/dev/null || { echo "opencode CLI not found — install it first"; exit 1; }
-	opencode serve --port 4096 & \
+	SIM_URL=http://localhost:3000/api/sim opencode serve --port 4096 & \
 	npm run dev; \
 	kill %1 2>/dev/null || true
 
-test: ## Lint, typecheck, and run unit tests (incl. safety & determinism invariants)
+test: ## Lint, typecheck, and run unit tests (incl. safety, determinism & S11 invariants)
 	npm run lint
 	npm run typecheck
 	npm test
 
-e2e: ## Run Playwright end-to-end tests
-	npm run test:e2e
-
-eval: ## Run a seeded scenario with and without the agent, print the two KPIs
+eval: ## Run both scenarios with and without the agent, print the two KPIs
 	npm run eval
 
 up: ## Start the Docker stack (hosted Claude)
