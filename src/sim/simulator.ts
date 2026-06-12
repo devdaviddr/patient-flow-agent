@@ -9,6 +9,7 @@ import {
   SCENARIOS,
   TICK_MINUTES,
   type ScenarioName,
+  type ScenarioParams,
 } from "./scenarios"
 import type { BlockerType, WorldState } from "./state"
 import { addMinutes } from "./time"
@@ -22,20 +23,26 @@ export interface ActionResult {
 
 export class Simulator {
   private state: WorldState
-  private rng: Rng
+  // Separate streams so agent actions (which change endogenous event draws) never
+  // perturb the exogenous arrival schedule — see generate.ts.
+  private rngArrivals: Rng
+  private rngEvents: Rng
   private num: number
+  private readonly params: ScenarioParams
   readonly scenario: ScenarioName
   readonly seed: number
 
-  constructor(scenario: ScenarioName = "normal-weekday", seed?: number) {
+  constructor(
+    scenario: ScenarioName = "normal-weekday",
+    seed?: number,
+    overrides?: Partial<ScenarioParams>,
+  ) {
     this.scenario = scenario
-    const params = SCENARIOS[scenario]
-    this.seed = seed ?? params.seed
-    this.rng = makeRng(this.seed)
-    const { world, nextPatientNum } = buildInitialWorld(
-      { ...params, seed: this.seed },
-      this.rng,
-    )
+    this.seed = seed ?? SCENARIOS[scenario].seed
+    this.params = { ...SCENARIOS[scenario], ...overrides, seed: this.seed }
+    this.rngArrivals = makeRng(this.seed)
+    this.rngEvents = makeRng((this.seed ^ 0x9e3779b9) >>> 0)
+    const { world, nextPatientNum } = buildInitialWorld(this.params, this.rngEvents)
     this.state = world
     this.num = nextPatientNum
   }
@@ -46,12 +53,12 @@ export class Simulator {
 
   /** Advance one tick. Returns the events emitted this tick (in order). */
   step(): SimEvent[] {
-    const params = SCENARIOS[this.scenario]
     const now = addMinutes(this.state.at, TICK_MINUTES)
     const { events, nextPatientNum } = generate(
       this.state,
-      params,
-      this.rng,
+      this.params,
+      this.rngArrivals,
+      this.rngEvents,
       now,
       this.num,
     )

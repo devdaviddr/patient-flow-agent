@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import type { WorldState } from "@/sim"
 import type { DecisionRecord, Intervention } from "@/driver"
+import type { EvalResult } from "@/eval"
 import { BedBoard } from "./components/BedBoard"
 import { ApprovalCards } from "./components/ApprovalCards"
 import { DecisionTimeline } from "./components/DecisionTimeline"
@@ -28,9 +29,11 @@ export default function Home() {
   const [proposals, setProposals] = useState<Intervention[]>([])
   const [records, setRecords] = useState<DecisionRecord[]>([])
   const [answer, setAnswer] = useState("")
+  const [evalResults, setEvalResults] = useState<EvalResult[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [assessing, setAssessing] = useState(false)
   const [asking, setAsking] = useState(false)
+  const [evaluating, setEvaluating] = useState(false)
 
   const refresh = useCallback(async () => {
     const [w, p, r] = await Promise.all([
@@ -92,6 +95,15 @@ export default function Home() {
     }
   }
 
+  const runEval = async () => {
+    setEvaluating(true)
+    try {
+      setEvalResults(await getJSON<EvalResult[]>("/api/eval/run"))
+    } finally {
+      setEvaluating(false)
+    }
+  }
+
   const ask = async (question: string) => {
     setAsking(true)
     setAnswer("")
@@ -138,7 +150,7 @@ export default function Home() {
           </div>
           <div className="panel">
             <h2>Flow KPIs</h2>
-            <KpiPanel />
+            <KpiPanel results={evalResults} busy={evaluating} onRun={runEval} />
           </div>
           <div className="panel">
             <h2>Ask</h2>

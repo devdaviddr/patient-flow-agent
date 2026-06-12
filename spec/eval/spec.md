@@ -5,7 +5,7 @@
 | **Feature** | The evidence: with/without-agent runs over a seeded day → the two flow KPIs |
 | **Phase** | 7 of the development plan |
 | **Version** | 0.1.0 |
-| **Status** | Plan PR — awaiting review/merge |
+| **Status** | ✅ Built & verified (F1–F8, S11 holds) — code PR open |
 | **Branch** | `feat/eval` (plan) → `feat/eval-impl` (code) |
 | **Companions** | `Architecture.md` (§4.6, §8), `PRD.md` (R11, S10, S11), `development-Plan.md` (Phase 7) |
 

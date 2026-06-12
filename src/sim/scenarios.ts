@@ -30,19 +30,20 @@ export const SCENARIOS: Record<ScenarioName, ScenarioParams> = {
     name: "normal-weekday",
     seed: 42,
     startAt: "2026-06-11T08:00:00.000Z",
-    edArrivalsPerTick: 1.2,
-    initialOccupancyPerWard: 6,
-    unblockChancePerTick: 0.25,
-    cleanChancePerTick: 0.5,
+    edArrivalsPerTick: 0.5,
+    initialOccupancyPerWard: 8,
+    // Blockers linger without intervention — this is the problem the agent solves.
+    unblockChancePerTick: 0.015,
+    cleanChancePerTick: 0.7,
   },
   "flu-surge": {
     name: "flu-surge",
     seed: 7,
     startAt: "2026-06-11T08:00:00.000Z",
-    edArrivalsPerTick: 2.6,
+    edArrivalsPerTick: 0.7,
     initialOccupancyPerWard: 8,
-    unblockChancePerTick: 0.2,
-    cleanChancePerTick: 0.5,
+    unblockChancePerTick: 0.015,
+    cleanChancePerTick: 0.7,
   },
 }
 

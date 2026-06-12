@@ -110,6 +110,14 @@ button.reject { border-color: var(--red); color: var(--red); }
 .kpi .value { font-size: 20px; font-weight: 600; margin-top: 4px; }
 .kpi .note { color: var(--muted); font-size: 10px; margin-top: 2px; }
 
+/* eval results */
+.eval-scenario { border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 10px; background: var(--panel-2); }
+.eval-head { font-weight: 600; margin-bottom: 6px; }
+.metric { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
+.metric .mlabel { color: var(--muted); }
+.metric .delta.good { color: var(--green); }
+.metric .delta.bad { color: var(--red); }
+
 /* q&a */
 .qa textarea { width: 100%; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px; font: inherit; resize: vertical; }
 .qa .answer { margin-top: 10px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
