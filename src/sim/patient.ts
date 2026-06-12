@@ -14,8 +14,8 @@ export interface PatientProfile {
 
 export function patientProfile(patientId: string): PatientProfile {
   const h = hashString(patientId)
-  // 1–5 day stay
-  const lengthOfStayHours = 24 + (h % 96)
+  // typical short-stay ward: ~8–32h
+  const lengthOfStayHours = 8 + (h % 24)
   // ~45% discharge cleanly; the rest carry one of the four blockers
   const roll = (h >>> 8) % 100
   const blocker: BlockerType =

@@ -4,7 +4,7 @@
 | --- | --- |
 | **Feature** | The eval harness, the two flow KPIs, and the with/without comparison |
 | **Version** | 0.1.0 |
-| **Status** | Plan PR — awaiting review/merge |
+| **Status** | ✅ Built & verified (F1–F8, S11 holds) — code PR open |
 | **Implements** | `spec.md` (same folder) |
 
 > SDD step 2 (Plan): *how* the spec is built — layout, decisions/trade-offs, and how each acceptance

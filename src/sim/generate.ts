@@ -14,7 +14,11 @@ import { atOrBefore } from "./time"
 export function generate(
   state: WorldState,
   params: ScenarioParams,
-  rng: Rng,
+  // Two independent streams: arrivals are EXOGENOUS demand and must be identical
+  // whether or not the agent acts (so with/without runs see the same day); events
+  // (unblock/clean outcomes) are endogenous and may diverge with agent actions.
+  rngArrivals: Rng,
+  rngEvents: Rng,
   now: ISOTime,
   nextPatientNum: number,
 ): { events: SimEvent[]; nextPatientNum: number } {
@@ -22,7 +26,7 @@ export function generate(
   let num = nextPatientNum
 
   // 1 · ED arrivals (queue up; they become admissible next tick)
-  const arrivals = rng.poisson(params.edArrivalsPerTick)
+  const arrivals = rngArrivals.poisson(params.edArrivalsPerTick)
   for (let i = 0; i < arrivals; i++) {
     events.push({ kind: "ed_arrival", at: now, patientId: `p-${num++}` })
   }
@@ -57,7 +61,7 @@ export function generate(
       p.blocker !== "none" &&
       p.predictedDischarge &&
       atOrBefore(p.predictedDischarge.at, now) &&
-      rng.next() < params.unblockChancePerTick
+      rngEvents.next() < params.unblockChancePerTick
     ) {
       events.push({
         kind: "blocker_resolved",
@@ -70,7 +74,7 @@ export function generate(
 
   // 5 · Bed cleaning: dirty beds may turn over
   for (const b of state.beds) {
-    if (b.status === "empty_dirty" && rng.next() < params.cleanChancePerTick) {
+    if (b.status === "empty_dirty" && rngEvents.next() < params.cleanChancePerTick) {
       events.push({ kind: "bed_cleaned", at: now, bedId: b.id })
     }
   }
