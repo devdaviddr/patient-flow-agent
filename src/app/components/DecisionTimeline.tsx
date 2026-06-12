@@ -5,17 +5,27 @@ function hhmm(at: string): string {
   return `${`${d.getUTCHours()}`.padStart(2, "0")}:${`${d.getUTCMinutes()}`.padStart(2, "0")}`
 }
 
+const TYPE_STYLE: Record<string, string> = {
+  gap: "text-dirty",
+  plan: "text-primary",
+  action: "text-clean",
+}
+
 export function DecisionTimeline({ records }: { records: DecisionRecord[] }) {
   if (records.length === 0) {
-    return <div className="empty">No decisions recorded yet.</div>
+    return <div className="text-sm text-muted">No decisions recorded yet.</div>
   }
   return (
-    <div>
+    <div className="divide-y divide-border">
       {records.map((r, i) => (
-        <div className="record" key={i}>
-          <span className={`rtype ${r.type}`}>{r.type}</span>
-          <span className="rtime">{hhmm(r.stateRef)}</span>
-          <span>{r.rationale}</span>
+        <div key={i} className="flex gap-3 py-2 text-xs">
+          <span
+            className={`w-16 shrink-0 text-[10px] font-medium uppercase tracking-wide ${TYPE_STYLE[r.type] ?? "text-muted"}`}
+          >
+            {r.type}
+          </span>
+          <span className="w-14 shrink-0 tabular-nums text-muted">{hhmm(r.stateRef)}</span>
+          <span className="text-text">{r.rationale}</span>
         </div>
       ))}
     </div>

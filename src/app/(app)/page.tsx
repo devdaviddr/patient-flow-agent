@@ -4,13 +4,14 @@ import { useCallback, useEffect, useState } from "react"
 import type { WorldState } from "@/sim"
 import type { DecisionRecord, Flag, Intervention } from "@/driver"
 import type { EvalResult } from "@/eval"
-import { BedBoard } from "./components/BedBoard"
-import { ApprovalCards } from "./components/ApprovalCards"
-import { FlaggedBlockers } from "./components/FlaggedBlockers"
-import { DecisionTimeline } from "./components/DecisionTimeline"
-import { KpiPanel } from "./components/KpiPanel"
-import { QuestionBox } from "./components/QuestionBox"
-import { ClockControls } from "./components/ClockControls"
+import { BedBoard } from "../components/BedBoard"
+import { ApprovalCards } from "../components/ApprovalCards"
+import { FlaggedBlockers } from "../components/FlaggedBlockers"
+import { DecisionTimeline } from "../components/DecisionTimeline"
+import { KpiPanel } from "../components/KpiPanel"
+import { QuestionBox } from "../components/QuestionBox"
+import { ClockControls } from "../components/ClockControls"
+import { Panel } from "../components/Panel"
 
 async function getJSON<T>(url: string): Promise<T> {
   const r = await fetch(url, { cache: "no-store" })
@@ -25,13 +26,13 @@ async function postJSON<T>(url: string, body?: unknown): Promise<T> {
   return r.json()
 }
 
-export default function Home() {
+export default function DashboardPage() {
   const [world, setWorld] = useState<WorldState | null>(null)
   const [proposals, setProposals] = useState<Intervention[]>([])
   const [flags, setFlags] = useState<Flag[]>([])
   const [records, setRecords] = useState<DecisionRecord[]>([])
-  const [answer, setAnswer] = useState("")
   const [evalResults, setEvalResults] = useState<EvalResult[] | null>(null)
+  const [answer, setAnswer] = useState("")
   const [busy, setBusy] = useState(false)
   const [assessing, setAssessing] = useState(false)
   const [asking, setAsking] = useState(false)
@@ -51,7 +52,7 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    // Initial async load — setState runs after the await, not synchronously in the effect.
+    // Initial async load — setState runs after the await, not synchronously.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh()
   }, [refresh])
@@ -66,23 +67,10 @@ export default function Home() {
     }
   }
 
-  const loadScenario = async (scenario: string) => {
-    setBusy(true)
-    try {
-      await postJSON("/api/sim/scenario", { scenario })
-      setProposals([])
-      setFlags([])
-      setAnswer("")
-      await refresh()
-    } finally {
-      setBusy(false)
-    }
-  }
-
   const assess = async () => {
     setAssessing(true)
     try {
-      const plan = await postJSON<{ interventions?: Intervention[]; error?: string }>("/api/driver/plan")
+      const plan = await postJSON<{ error?: string }>("/api/driver/plan")
       if (plan.error) setAnswer(`Assess failed: ${plan.error} (is opencode serve running?)`)
       await refresh()
     } finally {
@@ -121,11 +109,13 @@ export default function Home() {
   }
 
   return (
-    <main className="app">
-      <div className="header">
+    <div className="mx-auto max-w-[1200px] space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1>🏥 Patient Flow Orchestrator</h1>
-          <div className="sub">Perceive → reason → plan → act · synthetic data · human-approved</div>
+          <h1 className="text-lg font-semibold tracking-tight">Bed position</h1>
+          <p className="text-xs text-muted">
+            Perceive → reason → plan → act · synthetic data · human-approved
+          </p>
         </div>
         <ClockControls
           at={world?.at}
@@ -133,19 +123,16 @@ export default function Home() {
           assessing={assessing}
           onStep={step}
           onAssess={assess}
-          onScenario={loadScenario}
         />
       </div>
 
-      <div className="grid">
-        <div className="panel">
-          <h2>Bed-board</h2>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <Panel title="Bed-board" className="lg:col-span-2">
           <BedBoard world={world} />
-        </div>
+        </Panel>
 
-        <div>
-          <div className="panel">
-            <h2>Proposed interventions</h2>
+        <div className="space-y-4">
+          <Panel title="Proposed interventions">
             <ApprovalCards
               proposals={proposals}
               busy={busy}
@@ -153,22 +140,19 @@ export default function Home() {
               onReject={(id) => decide("/api/driver/reject", id)}
             />
             <FlaggedBlockers flags={flags} />
-          </div>
-          <div className="panel">
-            <h2>Flow KPIs</h2>
+          </Panel>
+          <Panel title="Flow KPIs">
             <KpiPanel results={evalResults} busy={evaluating} onRun={runEval} />
-          </div>
-          <div className="panel">
-            <h2>Ask</h2>
+          </Panel>
+          <Panel title="Ask">
             <QuestionBox busy={asking} answer={answer} onAsk={ask} />
-          </div>
+          </Panel>
         </div>
       </div>
 
-      <div className="panel">
-        <h2>Decision timeline</h2>
+      <Panel title="Decision timeline">
         <DecisionTimeline records={records} />
-      </div>
-    </main>
+      </Panel>
+    </div>
   )
 }

@@ -1,11 +1,8 @@
 "use client"
 
-import { useState } from "react"
-
 function stamp(at: string | undefined): string {
   if (!at) return "—"
-  const d = new Date(at)
-  return d.toISOString().slice(0, 16).replace("T", " ") + "Z"
+  return new Date(at).toISOString().slice(0, 16).replace("T", " ") + "Z"
 }
 
 export function ClockControls({
@@ -14,28 +11,30 @@ export function ClockControls({
   assessing,
   onStep,
   onAssess,
-  onScenario,
 }: {
   at: string | undefined
   busy: boolean
   assessing: boolean
   onStep: () => void
   onAssess: () => void
-  onScenario: (scenario: string) => void
 }) {
-  const [scenario, setScenario] = useState("normal-weekday")
   return (
-    <div className="controls">
-      <span className="clock">🕑 {stamp(at)}</span>
-      <button disabled={busy} onClick={onStep}>Step 30m</button>
-      <button className="primary" disabled={busy || assessing} onClick={onAssess}>
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="mr-1 text-sm tabular-nums text-muted">🕑 {stamp(at)}</span>
+      <button
+        disabled={busy}
+        onClick={onStep}
+        className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm hover:border-primary disabled:opacity-50"
+      >
+        Step 30m
+      </button>
+      <button
+        disabled={busy || assessing}
+        onClick={onAssess}
+        className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+      >
         {assessing ? "Assessing…" : "Assess"}
       </button>
-      <select value={scenario} onChange={(e) => setScenario(e.target.value)} disabled={busy}>
-        <option value="normal-weekday">normal-weekday</option>
-        <option value="flu-surge">flu-surge</option>
-      </select>
-      <button disabled={busy} onClick={() => onScenario(scenario)}>Load</button>
     </div>
   )
 }
