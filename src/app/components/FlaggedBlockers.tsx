@@ -1,4 +1,5 @@
 import type { Flag } from "@/driver"
+import { patientName, patientUr } from "@/sim"
 
 // Read-only: non-actionable blockers (allied_health, placement) the agent surfaced.
 // No Approve/Reject — these have no one-click fix in v1 (R6).
@@ -20,8 +21,8 @@ export function FlaggedBlockers({ flags }: { flags: Flag[] }) {
             >
               {f.blocker.replace("_", " ")}
             </span>
-            <span className="font-semibold">{f.patientId}</span>
-            <span className="text-muted">· {f.wardId}</span>
+            <span className="font-semibold">{patientName(f.patientId)}</span>
+            <span className="text-muted">({patientUr(f.patientId)}) · {f.wardId}</span>
           </div>
           <div className="mt-1 text-xs text-muted">{f.reason}</div>
         </div>

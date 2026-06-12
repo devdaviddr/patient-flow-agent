@@ -2,11 +2,12 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, LogOut, Settings } from "lucide-react"
+import { Info, LayoutDashboard, LogOut, Settings } from "lucide-react"
 import { useAuth } from "../../lib/auth"
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/about", label: "About", icon: Info },
   { href: "/settings", label: "Settings", icon: Settings },
 ]
 

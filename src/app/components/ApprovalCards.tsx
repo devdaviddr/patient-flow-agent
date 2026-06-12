@@ -1,4 +1,17 @@
 import type { Intervention } from "@/driver"
+import { patientName, patientUr } from "@/sim"
+
+const ACTION_TITLE: Record<string, string> = {
+  expedite_script: "Chase pharmacy",
+  request_transport: "Arrange transport",
+}
+
+const ACTION_EXPLANATION: Record<string, string> = {
+  expedite_script:
+    "This patient is ready to leave but is waiting on pharmacy. Approving asks pharmacy to prioritise it so the bed frees up sooner.",
+  request_transport:
+    "This patient is ready to leave but is waiting on transport. Approving arranges transport so the bed frees up sooner.",
+}
 
 export function ApprovalCards({
   proposals,
@@ -23,8 +36,9 @@ export function ApprovalCards({
             key={iv.id}
             className="rounded-xl border border-border bg-surface p-3.5 shadow-sm transition hover:shadow"
           >
-            <div className="text-sm font-semibold capitalize">
-              {iv.type.replace("_", " ")} · {iv.targetPatientId}
+            <div className="text-sm font-semibold">
+              {ACTION_TITLE[iv.type] ?? iv.type.replace("_", " ")} ·{" "}
+              {patientName(iv.targetPatientId)} ({patientUr(iv.targetPatientId)})
             </div>
             <div className="mt-0.5 text-xs text-muted">
               addresses gap: {iv.addressesGap} · impact {iv.impactScore.toFixed(2)}
@@ -35,7 +49,15 @@ export function ApprovalCards({
                 style={{ width: `${Math.round(iv.impactScore * 100)}%` }}
               />
             </div>
-            <div className="text-xs">{iv.rationale}</div>
+            {ACTION_EXPLANATION[iv.type] && (
+              <div className="text-xs">{ACTION_EXPLANATION[iv.type]}</div>
+            )}
+            <div className="mt-1.5">
+              <div className="text-[10px] font-medium uppercase tracking-wide text-muted">
+                Agent&apos;s reasoning
+              </div>
+              <div className="text-xs text-muted">{iv.rationale}</div>
+            </div>
             {decided ? (
               <div
                 className={`mt-1 text-xs ${

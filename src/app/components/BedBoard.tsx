@@ -1,4 +1,5 @@
 import type { Patient, WorldState } from "@/sim"
+import { patientName } from "@/sim"
 import { fmtTime } from "../lib/time"
 
 const STATUS_ACCENT: Record<string, string> = {
@@ -44,7 +45,8 @@ export function BedBoard({ world }: { world: WorldState | null }) {
                     <div className="text-[10px] text-muted">{bed.id}</div>
                     {p ? (
                       <>
-                        <div className="mt-0.5 font-semibold">{p.id}</div>
+                        <div className="mt-0.5 truncate font-semibold">{p.name}</div>
+                        <div className="text-[10px] text-muted">{p.ur}</div>
                         {p.predictedDischarge && (
                           <div className="text-muted">→ {fmtTime(p.predictedDischarge.at)}</div>
                         )}
@@ -76,7 +78,7 @@ export function BedBoard({ world }: { world: WorldState | null }) {
               key={id}
               className="mr-1 inline-block rounded-md border border-border bg-surface-2 px-2 py-0.5 text-xs text-text"
             >
-              {id}
+              {patientName(id)}
             </span>
           ))
         )}

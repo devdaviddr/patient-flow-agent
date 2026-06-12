@@ -12,6 +12,37 @@ export interface PatientProfile {
   blocker: BlockerType
 }
 
+// Fixed pools of plain, common names. None contain a denylisted whole word.
+const FIRST_NAMES = [
+  "James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael",
+  "Linda", "David", "Elizabeth", "William", "Barbara", "Daniel", "Susan",
+  "Joseph", "Karen", "Thomas", "Sarah", "Charles", "Lisa", "Anthony",
+  "Nancy", "Mark", "Margaret", "Paul", "Emily", "Steven", "Olivia",
+  "Andrew", "Grace",
+]
+
+const SURNAMES = [
+  "Smith", "Patel", "Nguyen", "Brown", "O'Connor", "Khan", "Garcia",
+  "Williams", "Jones", "Walker", "Reid", "Murphy", "Singh", "Lee",
+  "Taylor", "Wilson", "Chen", "Martin", "Anderson", "Thompson", "White",
+  "Harris", "Clark", "Lewis", "Young", "King", "Wright", "Scott",
+  "Green", "Baker",
+]
+
+/** Deterministic "Firstname Lastname" derived from the patient id. */
+export function patientName(id: string): string {
+  const h = hashString(id)
+  const first = FIRST_NAMES[h % FIRST_NAMES.length]
+  const last = SURNAMES[(h >>> 8) % SURNAMES.length]
+  return `${first} ${last}`
+}
+
+/** Deterministic 6-digit UR (Unit Record) number derived from the patient id. */
+export function patientUr(id: string): string {
+  const h = hashString(id)
+  return `UR-${100000 + (h % 900000)}`
+}
+
 export function patientProfile(patientId: string): PatientProfile {
   const h = hashString(patientId)
   // typical short-stay ward: ~8–32h
@@ -42,6 +73,8 @@ export function admitPatient(
   const h = hashString(patientId)
   return {
     id: patientId,
+    name: patientName(patientId),
+    ur: patientUr(patientId),
     wardId,
     bedId,
     admittedAt: at,
