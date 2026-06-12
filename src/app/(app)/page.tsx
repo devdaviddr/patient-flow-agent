@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useState, type ReactNode } from "react"
 import type { WorldState } from "@/sim"
 import type { Assessment, DecisionRecord, Flag, Intervention } from "@/driver"
 import type { EvalResult } from "@/eval"
@@ -28,6 +28,8 @@ async function postJSON<T>(url: string, body?: unknown): Promise<T> {
   return r.json()
 }
 
+type ColId = "edqueue" | "discharge" | "proposed" | "flagged" | "assessment"
+
 export default function DashboardPage() {
   const [world, setWorld] = useState<WorldState | null>(null)
   const [proposals, setProposals] = useState<Intervention[]>([])
@@ -40,29 +42,20 @@ export default function DashboardPage() {
   const [assessing, setAssessing] = useState(false)
   const [evaluating, setEvaluating] = useState(false)
   const [playing, setPlaying] = useState(false)
-  const [flaggedOpen, setFlaggedOpen] = useState(true)
-  const [proposedOpen, setProposedOpen] = useState(true)
-  const [assessmentOpen, setAssessmentOpen] = useState(true)
-  const [edQueueOpen, setEdQueueOpen] = useState(true)
-  const [dischargeOpen, setDischargeOpen] = useState(true)
+  // Accordion: at most one working column open at a time.
+  const [active, setActive] = useState<ColId | null>("proposed")
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
-    setFlaggedOpen(localStorage.getItem("pfo.flagged") !== "0")
-    setProposedOpen(localStorage.getItem("pfo.proposed") !== "0")
-    setAssessmentOpen(localStorage.getItem("pfo.assessment") !== "0")
-    setEdQueueOpen(localStorage.getItem("pfo.edqueue") !== "0")
-    setDischargeOpen(localStorage.getItem("pfo.discharge") !== "0")
-    /* eslint-enable react-hooks/set-state-in-effect */
+    const saved = localStorage.getItem("pfo.active")
+    if (!saved) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActive(saved === "none" ? null : (saved as ColId))
   }, [])
 
-  const toggleCol = (
-    key: string,
-    setter: (fn: (o: boolean) => boolean) => void,
-  ) =>
-    setter((o) => {
-      const next = !o
-      localStorage.setItem(key, next ? "1" : "0")
+  const setActiveCol = (id: ColId) =>
+    setActive((prev) => {
+      const next = prev === id ? null : id
+      localStorage.setItem("pfo.active", next ?? "none")
       return next
     })
 
@@ -177,66 +170,79 @@ export default function DashboardPage() {
         <BedBoard world={world} />
       </Panel>
 
-      {/* ED queue · Discharge queue · Proposed · Flagged · Assessment — one collapsible row */}
-      <div className="flex flex-col gap-4 lg:flex-row">
-        <CollapsibleColumn
-          title="ED queue"
-          count={world?.edQueue.length}
-          open={edQueueOpen}
-          onToggle={() => toggleCol("pfo.edqueue", setEdQueueOpen)}
-          className={edQueueOpen ? "lg:flex-[2]" : "lg:w-12 lg:flex-none"}
-        >
-          <EdQueue world={world} />
-        </CollapsibleColumn>
-
-        <CollapsibleColumn
-          title="Discharge queue"
-          count={world ? world.patients.filter((p) => p.predictedDischarge).length : undefined}
-          open={dischargeOpen}
-          onToggle={() => toggleCol("pfo.discharge", setDischargeOpen)}
-          className={dischargeOpen ? "lg:flex-[2]" : "lg:w-12 lg:flex-none"}
-        >
-          <DischargeQueue world={world} />
-        </CollapsibleColumn>
-
-        <CollapsibleColumn
-          title="Proposed interventions"
-          count={proposals.length}
-          open={proposedOpen}
-          onToggle={() => toggleCol("pfo.proposed", setProposedOpen)}
-          className={proposedOpen ? "lg:flex-[3]" : "lg:w-12 lg:flex-none"}
-        >
-          <div className="scroll-area max-h-[560px] overflow-y-auto pr-1">
-            <ApprovalCards
-              proposals={proposals}
-              busy={busy}
-              onApprove={(id) => decide("/api/driver/approve", id)}
-              onReject={(id) => decide("/api/driver/reject", id)}
-            />
+      {/* One column open at a time — collapsed banners on the left, the open one fills the right */}
+      {(() => {
+        const columns: { id: ColId; title: string; count?: number; body: ReactNode }[] = [
+          { id: "edqueue", title: "ED queue", count: world?.edQueue.length, body: <EdQueue world={world} /> },
+          {
+            id: "discharge",
+            title: "Discharge queue",
+            count: world ? world.patients.filter((p) => p.predictedDischarge).length : undefined,
+            body: <DischargeQueue world={world} />,
+          },
+          {
+            id: "proposed",
+            title: "Proposed interventions",
+            count: proposals.length,
+            body: (
+              <div className="scroll-area max-h-[560px] overflow-y-auto pr-1">
+                <ApprovalCards
+                  proposals={proposals}
+                  busy={busy}
+                  onApprove={(id) => decide("/api/driver/approve", id)}
+                  onReject={(id) => decide("/api/driver/reject", id)}
+                />
+              </div>
+            ),
+          },
+          {
+            id: "flagged",
+            title: "Flagged — no one-click fix",
+            count: flags.length,
+            body: (
+              <div className="scroll-area max-h-[560px] overflow-y-auto pr-1">
+                <FlaggedBlockers flags={flags} />
+              </div>
+            ),
+          },
+          {
+            id: "assessment",
+            title: "Assessment — what the agent is doing",
+            body: <AssessmentPanel assessment={assessment} onClear={() => setAssessment(null)} />,
+          },
+        ]
+        const open = columns.find((c) => c.id === active)
+        return (
+          <div className="flex flex-col gap-4 lg:flex-row">
+            {columns
+              .filter((c) => c.id !== active)
+              .map((c) => (
+                <CollapsibleColumn
+                  key={c.id}
+                  title={c.title}
+                  count={c.count}
+                  open={false}
+                  onToggle={() => setActiveCol(c.id)}
+                  className="lg:w-12 lg:flex-none"
+                >
+                  {c.body}
+                </CollapsibleColumn>
+              ))}
+            {open && (
+              <CollapsibleColumn
+                key={open.id}
+                title={open.title}
+                count={open.count}
+                open
+                onToggle={() => setActiveCol(open.id)}
+                className="lg:flex-1"
+              >
+                {open.body}
+              </CollapsibleColumn>
+            )}
           </div>
-        </CollapsibleColumn>
-
-        <CollapsibleColumn
-          title="Flagged — no one-click fix"
-          count={flags.length}
-          open={flaggedOpen}
-          onToggle={() => toggleCol("pfo.flagged", setFlaggedOpen)}
-          className={flaggedOpen ? "lg:flex-[2]" : "lg:w-12 lg:flex-none"}
-        >
-          <div className="scroll-area max-h-[560px] overflow-y-auto pr-1">
-            <FlaggedBlockers flags={flags} />
-          </div>
-        </CollapsibleColumn>
-
-        <CollapsibleColumn
-          title="Assessment — what the agent is doing"
-          open={assessmentOpen}
-          onToggle={() => toggleCol("pfo.assessment", setAssessmentOpen)}
-          className={assessmentOpen ? "lg:flex-[3]" : "lg:w-12 lg:flex-none"}
-        >
-          <AssessmentPanel assessment={assessment} onClear={() => setAssessment(null)} />
-        </CollapsibleColumn>
-      </div>
+        )
+      })()}
 
       <Panel title="Does the agent help?">
         <KpiPanel results={evalResults} busy={evaluating} onRun={runEval} />
