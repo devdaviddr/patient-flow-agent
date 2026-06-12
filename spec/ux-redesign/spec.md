@@ -2,11 +2,11 @@
 
 | | |
 | --- | --- |
-| **Feature** | A professional, light, medical-grade UI: app shell (topbar + collapsible sidebar), login / dashboard / settings screens, mock auth |
-| **Target release** | `v1.2` |
-| **Status** | Plan PR — awaiting review/merge |
+| **Feature** | A professional, light, medical-grade UI: app shell (topbar + collapsible sidebar), login / dashboard / settings / about screens, mock auth — plus readability + live-agent-visibility extras (see §9) |
+| **Target release** | `0.3.0` |
+| **Status** | ✅ Built & verified — PR #18 (grew well beyond the original plan; see §9) |
 | **Branch** | `feat/ux-redesign` (plan) → `feat/ux-redesign-impl` (code) |
-| **Companions** | `releases/v1.0.md` (current architecture), `docs/PRD.md` (§6 demo-friendliness) |
+| **Companions** | `releases/0.1.0.md` (current architecture), `docs/PRD.md` (§6 demo-friendliness) |
 
 > SDD step 1 (Specify): *what* this feature is and *why*, plus acceptance criteria and scope. No
 > implementation detail — that lives in `implementation.md` (written after this spec + its open
@@ -28,7 +28,7 @@ It changes **only the presentation layer** — the agent, simulator, driver, too
 ## 2. How this fits the solution
 
 - **It is a Web UI (component 5) overhaul.** Same data, same `/api/*` routes, same agent loop — a new
-  shell and theme around the existing dashboard. (`releases/v1.0.md`)
+  shell and theme around the existing dashboard. (`releases/0.1.0.md`)
 - **It changes nothing below the UI.** No agent, simulator, driver, tools, or eval changes; the 38
   existing tests must stay green.
 - **It serves PRD §6 (demo-friendly).** A polished, legible, navigable interface makes the with/without
@@ -90,7 +90,7 @@ It changes **only the presentation layer** — the agent, simulator, driver, too
 
 ## 7. Dependencies & assumptions
 
-- Builds on the current v1.1 UI (`src/app/`) and its `/api/*` routes — all reused unchanged.
+- Builds on the current 0.2.0 UI (`src/app/`) and its `/api/*` routes — all reused unchanged.
 - Pure front-end: no new backend routes required (mock auth is client-side).
 - Assumes desktop browser use for the demo; graceful at common widths, not phone-optimised.
 
@@ -105,3 +105,23 @@ It changes **only the presentation layer** — the agent, simulator, driver, too
 6. **Settings content** → scenario/seed selector + read-only active model/provider + mock user profile.
 7. **Palette** → **clinical blue** primary `#2c7be5` on white/`#f7f9fc` surfaces; green/amber/red
    reserved for bed-status semantics.
+
+## 9. Delivered (beyond the original plan)
+
+The redesign shipped the original shell (H1–H12) **and** a series of readability + live-agent-visibility
+improvements added during review. All remain presentation-only — no agent/sim/eval logic changed except
+where noted; the 38 tests stay green.
+
+| # | Delivered | Notes |
+| --- | --- | --- |
+| U1 | **Patient identities** — every patient has a fake **name** + **UR number** (Unit Record), shown on the bed-board, intervention cards, queues, and flagged list. | The only sim change: deterministic `patientName(id)`/`patientUr(id)` in `src/sim/` (safety + determinism tests still pass). |
+| U2 | **Bed-board on its own full-width row**, each ward shown as a single row of beds on wide screens. | layout |
+| U3 | **Inter via `@fontsource/inter`** (self-hosted) rather than `next/font/google`, to avoid a build-time network fetch. | same font; build is offline-safe |
+| U4 | **About page** (`/about`, in the sidebar) — business flow, the agent loop, the architecture (two nested loops, five components, safety boundary, determinism), and the KPI evidence — with **Mermaid** diagrams themed to the palette. | New nav item; `<Mermaid>` client component (dynamic import). |
+| U5 | **Plain-English content** — intervention cards lead with a friendly action ("Chase pharmacy" / "Arrange transport") + patient name, a one-line explanation, and the agent's raw rationale as muted supporting text; the KPI panel renamed **"Does the agent help?"** with plain measures ("Time patients waited for a bed", "Spare ready beds"). | Non-medical readers can follow it. |
+| U6 | **ED queue** + **Discharge queue** panels of patient cards (waiting-for-a-bed, and predicted discharges soonest-first with ready/blocker badges). | Replaces the inline ED-queue line. |
+| U7 | **Accordion dashboard** — the working columns (ED queue · Discharge queue · Proposed · Flagged · Assessment) sit in one row; **one open at a time**, the open panel on the left filling the width, the rest as thin vertical banners; choice persisted. | Replaces the per-column collapse toggles. |
+| U8 | **Live Assessment panel** — pressing **Assess** streams the agent's activity: start time, status, and a raw log of each **tool call and its result** (incl. subagent `task` delegation), polled live; **spinner** on the button; **Re-assess** clears the previous log. | New `startAssessment()` background flow in the driver; `planViaOrchestratorLogged()` polls OpenCode session messages. SDK stays isolated to `adapter.ts`. |
+| U9 | **Floating chat assistant** — Q&A moved into a sticky bottom-right button that opens a chat overlay (message log, Enter-to-send), available on every screen. | Replaces the dashboard Ask panel. |
+| U10 | **Real-time playback** — a **Play/Pause** that auto-advances the clock (~3s/tick). | PRD §6 "played". |
+| U11 | **All app times via dayjs** (`DD-MM-YYYY HH:mm`, UTC for sim times); ISO timestamps inside the agent's rationale text reformatted in-place. | `src/app/lib/time.ts`. |

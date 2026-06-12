@@ -44,3 +44,18 @@ export interface DecisionRecord {
   rationale: string
   payload: unknown
 }
+
+export interface AssessmentLogLine {
+  at: string // real wall-clock ISO
+  text: string
+}
+
+export interface Assessment {
+  startedAt: string
+  finishedAt?: string
+  status: "running" | "done" | "error"
+  log: AssessmentLogLine[]
+  error?: string
+  interventions?: number
+  flags?: number
+}

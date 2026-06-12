@@ -88,3 +88,94 @@ export async function planViaOrchestrator(promptBody: string): Promise<ProposedP
     return parsePlan(retry)
   }
 }
+
+function truncate(s: string, n = 140): string {
+  const oneLine = s.replace(/\s+/g, " ").trim()
+  return oneLine.length > n ? `${oneLine.slice(0, n)}…` : oneLine
+}
+
+/**
+ * Same as planViaOrchestrator, but reports the agent's live activity (each tool call
+ * and its result) via onLog while it runs — by polling the session's messages.
+ * Best-effort: logging never throws and never blocks the plan.
+ */
+export async function planViaOrchestratorLogged(
+  promptBody: string,
+  onLog: (text: string) => void,
+): Promise<ProposedPlan> {
+  const id = await getSessionId()
+  const client = getClient()
+  const called = new Set<string>()
+  const resulted = new Set<string>()
+
+  // Snapshot existing message parts so we only report THIS assessment's activity.
+  try {
+    const existing = await client.session.messages({ path: { id } })
+    for (const m of existing.data ?? [])
+      for (const p of m.parts) {
+        called.add(p.id)
+        resulted.add(p.id)
+      }
+  } catch {
+    /* ignore */
+  }
+
+  let polling = true
+  const poll = async () => {
+    while (polling) {
+      try {
+        const res = await client.session.messages({ path: { id } })
+        for (const m of res.data ?? []) {
+          for (const p of m.parts) {
+            if (p.type !== "tool") continue
+            if (!called.has(p.id)) {
+              called.add(p.id)
+              const input = "input" in p.state ? p.state.input : undefined
+              const args = input
+                ? Object.entries(input)
+                    .map(([k, v]) => `${k}=${String(v)}`)
+                    .join(" ")
+                : ""
+              onLog(`called ${p.tool}${args ? ` · ${args}` : ""}`)
+            }
+            if (
+              (p.state.status === "completed" || p.state.status === "error") &&
+              !resulted.has(p.id)
+            ) {
+              resulted.add(p.id)
+              if (p.state.status === "completed") {
+                onLog(`  ↳ ${p.tool} → ${truncate(String(p.state.output))}`)
+              } else {
+                onLog(`  ↳ ${p.tool} failed`)
+              }
+            }
+          }
+        }
+      } catch {
+        /* ignore transient poll errors */
+      }
+      await new Promise((r) => setTimeout(r, 1200))
+    }
+  }
+  const pollPromise = poll()
+
+  const runOnce = async (): Promise<ProposedPlan> => {
+    const first = await promptOrchestrator(`${promptBody}\n${PLAN_INSTRUCTION}`)
+    try {
+      return parsePlan(first)
+    } catch {
+      onLog("reply wasn't valid JSON — asking again")
+      const retry = await promptOrchestrator(
+        "Your previous reply was not valid JSON. Reply with ONLY the JSON object in a ```json fenced block.",
+      )
+      return parsePlan(retry)
+    }
+  }
+
+  try {
+    return await runOnce()
+  } finally {
+    polling = false
+    await pollPromise.catch(() => {})
+  }
+}

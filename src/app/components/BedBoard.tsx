@@ -1,44 +1,64 @@
 import type { Patient, WorldState } from "@/sim"
+import { fmtTime } from "../lib/time"
 
-function hhmm(at: string): string {
-  const d = new Date(at)
-  return `${`${d.getUTCHours()}`.padStart(2, "0")}:${`${d.getUTCMinutes()}`.padStart(2, "0")}`
+const STATUS_ACCENT: Record<string, string> = {
+  occupied: "border-l-occupied",
+  empty_clean: "border-l-clean",
+  empty_dirty: "border-l-dirty",
+  blocked: "border-l-blocked",
+}
+
+const BLOCKER_STYLE: Record<string, string> = {
+  pharmacy_script: "text-pharmacy-script border-pharmacy-script",
+  transport: "text-transport border-transport",
+  allied_health: "text-allied-health border-allied-health",
+  placement: "text-placement border-placement",
 }
 
 export function BedBoard({ world }: { world: WorldState | null }) {
-  if (!world) return <div className="empty">Loading…</div>
+  if (!world) return <div className="text-sm text-muted">Loading…</div>
   const byBed = new Map<string, Patient>()
   for (const p of world.patients) byBed.set(p.bedId, p)
 
   return (
-    <div>
+    <div className="space-y-5">
       {world.wards.map((ward) => {
         const beds = world.beds.filter((b) => b.wardId === ward.id)
         const free = beds.filter((b) => b.status === "empty_clean").length
         return (
-          <div className="ward" key={ward.id}>
-            <div className="ward-head">
-              <span>{ward.name}</span>
-              <span>{free} clean / {ward.bedCount}</span>
+          <div key={ward.id}>
+            <div className="mb-2 flex items-center justify-between text-sm">
+              <span className="font-medium">{ward.name}</span>
+              <span className="text-muted">
+                {free} clean / {ward.bedCount}
+              </span>
             </div>
-            <div className="beds">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-5 lg:grid-cols-10">
               {beds.map((bed) => {
-                const p = bed.patientId ? byBed.get(bed.patientId) : undefined
+                const p = bed.patientId ? byBed.get(bed.id) : undefined
                 return (
-                  <div className={`bed ${bed.status}`} key={bed.id}>
-                    <div className="bid">{bed.id}</div>
+                  <div
+                    key={bed.id}
+                    className={`min-h-[68px] rounded-lg border border-l-4 border-border bg-surface p-2 text-xs ${STATUS_ACCENT[bed.status]}`}
+                  >
+                    <div className="text-[10px] text-muted">{bed.id}</div>
                     {p ? (
                       <>
-                        <div className="pid">{p.id}</div>
+                        <div className="mt-0.5 truncate font-semibold">{p.name}</div>
+                        <div className="text-[10px] text-muted">{p.ur}</div>
                         {p.predictedDischarge && (
-                          <div className="when">→ {hhmm(p.predictedDischarge.at)}</div>
+                          <div className="text-muted">→ {fmtTime(p.predictedDischarge.at)}</div>
                         )}
                         {p.blocker !== "none" && (
-                          <span className={`badge ${p.blocker}`}>{p.blocker.replace("_", " ")}</span>
+                          <span
+                            className={`mt-1 inline-block rounded-full border px-1.5 py-px text-[10px] ${BLOCKER_STYLE[p.blocker]}`}
+                          >
+                            {p.blocker.replace("_", " ")}
+                          </span>
                         )}
                       </>
                     ) : (
-                      <div className="when">{bed.status.replace("empty_", "")}</div>
+                      <div className="mt-0.5 text-muted">{bed.status.replace("empty_", "")}</div>
                     )}
                   </div>
                 )
@@ -47,14 +67,6 @@ export function BedBoard({ world }: { world: WorldState | null }) {
           </div>
         )
       })}
-      <div className="ed-queue">
-        ED queue ({world.edQueue.length}):{" "}
-        {world.edQueue.length === 0
-          ? "—"
-          : world.edQueue.map((id) => (
-              <span className="chip" key={id}>{id}</span>
-            ))}
-      </div>
     </div>
   )
 }

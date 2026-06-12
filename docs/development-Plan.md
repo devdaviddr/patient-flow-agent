@@ -298,9 +298,9 @@ Write `tests/determinism.test.ts` now: same seed + scenario run twice → identi
 
 **Goal:** make it a portfolio piece someone can run and read.
 
-Tighten the README (how to run `opencode serve` + the dev server, where the API key goes), record the demo flow, verify the provider swap works (hosted Claude ↔ local Ollama with no change to tools/sim/UI — PRD §6, `Architecture.md §8`), and do a final pass over the full success-criteria checklist S1–S13. Confirm the safety and determinism tests are still green. Tag `v1.0`.
+Tighten the README (how to run `opencode serve` + the dev server, where the API key goes), record the demo flow, verify the provider swap works (hosted Claude ↔ local Ollama with no change to tools/sim/UI — PRD §6, `Architecture.md §8`), and do a final pass over the full success-criteria checklist S1–S13. Confirm the safety and determinism tests are still green. Tag `0.1.0`.
 
-**Branch:** `chore/polish`, `docs/readme` → tag `v1.0`
+**Branch:** `chore/polish`, `docs/readme` → tag `0.1.0`
 **Gate:** a fresh clone, following only the README, can run the demo and reproduce the eval result.
 
 ---

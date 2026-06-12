@@ -27,6 +27,8 @@ export interface Bed {
 
 export interface Patient {
   id: string
+  name: string
+  ur: string
   wardId: string
   bedId: string
   admittedAt: ISOTime
