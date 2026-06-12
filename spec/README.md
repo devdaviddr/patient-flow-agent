@@ -6,5 +6,6 @@ been consolidated into one file per release. The full per-feature specs remain i
 
 - [`0.1.0.md`](./0.1.0.md) — the core build (Simulator · Tools+Safety · Harness · Loop Driver · Web UI · Eval)
 - [`0.2.0.md`](./0.2.0.md) — complete blocker coverage (Reasoning quality)
+- [`0.3.0.md`](./0.3.0.md) — professional UX + live agent visibility (the UI overhaul)
 
 See also `docs/SUCCESS_CRITERIA.md` for the S1–S13 checklist mapped to evidence.
