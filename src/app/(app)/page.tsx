@@ -2,9 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react"
 import type { WorldState } from "@/sim"
-import type { DecisionRecord, Flag, Intervention } from "@/driver"
+import type { Assessment, DecisionRecord, Flag, Intervention } from "@/driver"
 import type { EvalResult } from "@/eval"
 import { BedBoard } from "../components/BedBoard"
+import { AssessmentPanel } from "../components/AssessmentPanel"
 import { ApprovalCards } from "../components/ApprovalCards"
 import { FlaggedBlockers } from "../components/FlaggedBlockers"
 import { CollapsibleColumn } from "../components/CollapsibleColumn"
@@ -32,6 +33,7 @@ export default function DashboardPage() {
   const [flags, setFlags] = useState<Flag[]>([])
   const [records, setRecords] = useState<DecisionRecord[]>([])
   const [evalResults, setEvalResults] = useState<EvalResult[] | null>(null)
+  const [assessment, setAssessment] = useState<Assessment | null>(null)
   const [assessNote, setAssessNote] = useState("")
   const [busy, setBusy] = useState(false)
   const [assessing, setAssessing] = useState(false)
@@ -104,13 +106,21 @@ export default function DashboardPage() {
   const assess = async () => {
     setAssessing(true)
     setAssessNote("")
-    try {
-      const plan = await postJSON<{ error?: string }>("/api/driver/plan")
-      if (plan.error) setAssessNote(`Assess failed: ${plan.error} (is opencode serve running?)`)
-      await refresh()
-    } finally {
-      setAssessing(false)
+    await fetch("/api/driver/assess", { method: "POST" })
+    // Poll the live assessment until it finishes.
+    for (;;) {
+      const a = await getJSON<Assessment | null>("/api/driver/assessment")
+      setAssessment(a)
+      if (!a || a.status !== "running") {
+        if (a?.status === "error") {
+          setAssessNote(`Assess failed: ${a.error} (is opencode serve running?)`)
+        }
+        break
+      }
+      await new Promise((r) => setTimeout(r, 1200))
     }
+    await refresh()
+    setAssessing(false)
   }
 
   const decide = async (path: string, interventionId: string) => {
@@ -187,6 +197,12 @@ export default function DashboardPage() {
           </div>
         </CollapsibleColumn>
       </div>
+
+      {(assessment || assessing) && (
+        <Panel title="Assessment — what the agent is doing">
+          <AssessmentPanel assessment={assessment} />
+        </Panel>
+      )}
 
       <Panel title="Does the agent help?">
         <KpiPanel results={evalResults} busy={evaluating} onRun={runEval} />

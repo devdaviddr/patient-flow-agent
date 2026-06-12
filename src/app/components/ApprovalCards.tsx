@@ -1,5 +1,6 @@
 import type { Intervention } from "@/driver"
 import { patientName, patientUr } from "@/sim"
+import { humanizeTimes } from "../lib/time"
 
 const ACTION_TITLE: Record<string, string> = {
   expedite_script: "Chase pharmacy",
@@ -56,7 +57,7 @@ export function ApprovalCards({
               <div className="text-[10px] font-medium uppercase tracking-wide text-muted">
                 Agent&apos;s reasoning
               </div>
-              <div className="text-xs text-muted">{iv.rationale}</div>
+              <div className="text-xs text-muted">{humanizeTimes(iv.rationale)}</div>
             </div>
             {decided ? (
               <div

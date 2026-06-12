@@ -4,7 +4,13 @@
 
 import { getSimulator, Simulator, type ActionResult, type SimEvent } from "@/sim"
 import { DecisionLog } from "./records"
-import type { Flag, Intervention, InterventionType, ProposedPlan } from "./types"
+import type {
+  Assessment,
+  Flag,
+  Intervention,
+  InterventionType,
+  ProposedPlan,
+} from "./types"
 
 const BLOCKER_FOR: Record<InterventionType, "pharmacy_script" | "transport"> = {
   expedite_script: "pharmacy_script",
@@ -29,6 +35,7 @@ export class Driver {
   private readonly log = new DecisionLog()
   private current: Intervention[] = []
   private currentFlags: Flag[] = []
+  private assessmentState: Assessment | null = null
 
   constructor(deps: DriverDeps = {}) {
     this.sim = deps.sim ?? getSimulator()
@@ -37,10 +44,9 @@ export class Driver {
       ((body) => import("./adapter").then((m) => m.planViaOrchestrator(body)))
   }
 
-  /** One tick: prompt the agent, record the gaps + plan, stash the proposals. No state change. */
-  async plan(): Promise<ProposedPlan> {
+  /** Record a plan's gaps + stash the proposals/flags. No state change. */
+  private applyPlan(plan: ProposedPlan): void {
     const stateRef = this.sim.getState().at
-    const plan = await this.planner(TICK_PROMPT)
     this.current = plan.interventions.map((iv) => ({ ...iv }))
     this.currentFlags = plan.flags ?? []
     for (const gap of plan.gaps) {
@@ -59,7 +65,57 @@ export class Driver {
       rationale: `${plan.interventions.length} intervention(s) proposed, ${this.currentFlags.length} flagged`,
       payload: plan.interventions,
     })
+  }
+
+  /** One tick: prompt the agent, record the gaps + plan, stash the proposals. No state change. */
+  async plan(): Promise<ProposedPlan> {
+    const plan = await this.planner(TICK_PROMPT)
+    this.applyPlan(plan)
     return plan
+  }
+
+  assessment(): Assessment | null {
+    return this.assessmentState
+      ? { ...this.assessmentState, log: [...this.assessmentState.log] }
+      : null
+  }
+
+  /**
+   * Kick off an assessment in the BACKGROUND, capturing the agent's live activity.
+   * Returns immediately; poll assessment() for progress.
+   */
+  startAssessment(): Assessment {
+    if (this.assessmentState?.status === "running") return this.assessment()!
+    const state: Assessment = {
+      startedAt: new Date().toISOString(),
+      status: "running",
+      log: [],
+    }
+    this.assessmentState = state
+    const onLog = (text: string) => state.log.push({ at: new Date().toISOString(), text })
+
+    void (async () => {
+      try {
+        onLog("Assessment started — prompting the orchestrator")
+        const m = await import("./adapter")
+        const plan = await m.planViaOrchestratorLogged(TICK_PROMPT, onLog)
+        this.applyPlan(plan)
+        const flagged = (plan.flags ?? []).length
+        onLog(`Done — ${plan.interventions.length} action(s) proposed, ${flagged} flagged`)
+        state.status = "done"
+        state.interventions = plan.interventions.length
+        state.flags = flagged
+        state.finishedAt = new Date().toISOString()
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        onLog(`Error: ${msg}`)
+        state.status = "error"
+        state.error = msg
+        state.finishedAt = new Date().toISOString()
+      }
+    })()
+
+    return this.assessment()!
   }
 
   proposals(): Intervention[] {

@@ -1,6 +1,6 @@
 "use client"
 
-import { Pause, Play } from "lucide-react"
+import { Loader2, Pause, Play } from "lucide-react"
 import { fmtDateTime } from "../lib/time"
 
 export function ClockControls({
@@ -44,8 +44,9 @@ export function ClockControls({
       <button
         disabled={busy || assessing}
         onClick={onAssess}
-        className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-70"
       >
+        {assessing && <Loader2 size={15} className="animate-spin" />}
         {assessing ? "Assessing…" : "Assess"}
       </button>
     </div>
