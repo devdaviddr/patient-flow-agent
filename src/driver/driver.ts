@@ -62,7 +62,7 @@ export class Driver {
       at: stateRef,
       type: "plan",
       stateRef,
-      rationale: `${plan.interventions.length} intervention(s) proposed, ${this.currentFlags.length} flagged`,
+      rationale: `Proposed ${plan.interventions.length} action(s) to free beds; flagged ${this.currentFlags.length} blocker(s) for a human to chase`,
       payload: plan.interventions,
     })
   }
@@ -139,7 +139,7 @@ export class Driver {
       at: stateRef,
       type: "action",
       stateRef,
-      rationale: `Approved ${iv.type} for ${iv.targetPatientId}: ${result.note}`,
+      rationale: `Approved — ${iv.type} for ${iv.targetPatientId} (${result.applied ? "blocker cleared, bed will free up" : "no change"})`,
       payload: { intervention: iv, result },
     })
     return result
@@ -155,7 +155,7 @@ export class Driver {
       at: stateRef,
       type: "action",
       stateRef,
-      rationale: `Rejected ${iv.type} for ${iv.targetPatientId}`,
+      rationale: `Rejected — ${iv.type} for ${iv.targetPatientId} (no change)`,
       payload: { intervention: iv, result: { applied: false } },
     })
   }
