@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react"
 import type { WorldState } from "@/sim"
-import type { DecisionRecord, Intervention } from "@/driver"
+import type { DecisionRecord, Flag, Intervention } from "@/driver"
 import type { EvalResult } from "@/eval"
 import { BedBoard } from "./components/BedBoard"
 import { ApprovalCards } from "./components/ApprovalCards"
+import { FlaggedBlockers } from "./components/FlaggedBlockers"
 import { DecisionTimeline } from "./components/DecisionTimeline"
 import { KpiPanel } from "./components/KpiPanel"
 import { QuestionBox } from "./components/QuestionBox"
@@ -27,6 +28,7 @@ async function postJSON<T>(url: string, body?: unknown): Promise<T> {
 export default function Home() {
   const [world, setWorld] = useState<WorldState | null>(null)
   const [proposals, setProposals] = useState<Intervention[]>([])
+  const [flags, setFlags] = useState<Flag[]>([])
   const [records, setRecords] = useState<DecisionRecord[]>([])
   const [answer, setAnswer] = useState("")
   const [evalResults, setEvalResults] = useState<EvalResult[] | null>(null)
@@ -36,13 +38,15 @@ export default function Home() {
   const [evaluating, setEvaluating] = useState(false)
 
   const refresh = useCallback(async () => {
-    const [w, p, r] = await Promise.all([
+    const [w, p, f, r] = await Promise.all([
       getJSON<WorldState>("/api/sim/state"),
       getJSON<Intervention[]>("/api/driver/proposals"),
+      getJSON<Flag[]>("/api/driver/flags"),
       getJSON<DecisionRecord[]>("/api/driver/records"),
     ])
     setWorld(w)
     setProposals(p)
+    setFlags(f)
     setRecords(r)
   }, [])
 
@@ -67,6 +71,7 @@ export default function Home() {
     try {
       await postJSON("/api/sim/scenario", { scenario })
       setProposals([])
+      setFlags([])
       setAnswer("")
       await refresh()
     } finally {
@@ -147,6 +152,7 @@ export default function Home() {
               onApprove={(id) => decide("/api/driver/approve", id)}
               onReject={(id) => decide("/api/driver/reject", id)}
             />
+            <FlaggedBlockers flags={flags} />
           </div>
           <div className="panel">
             <h2>Flow KPIs</h2>

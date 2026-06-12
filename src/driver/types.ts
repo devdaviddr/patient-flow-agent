@@ -22,9 +22,19 @@ export interface Intervention {
   status: "proposed" | "approved" | "rejected" | "executed"
 }
 
+// A not-ready discharge blocked on a NON-actionable type (no v1 one-click fix).
+// Surfaced for visibility so a human can chase it off-system (R6).
+export interface Flag {
+  patientId: string
+  wardId: string
+  blocker: "allied_health" | "placement"
+  reason: string
+}
+
 export interface ProposedPlan {
   gaps: CapacityGap[]
   interventions: Intervention[] // ranked, highest impact first
+  flags: Flag[] // non-actionable blockers, read-only
 }
 
 export interface DecisionRecord {

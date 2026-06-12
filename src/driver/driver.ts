@@ -4,7 +4,7 @@
 
 import { getSimulator, Simulator, type ActionResult, type SimEvent } from "@/sim"
 import { DecisionLog } from "./records"
-import type { Intervention, InterventionType, ProposedPlan } from "./types"
+import type { Flag, Intervention, InterventionType, ProposedPlan } from "./types"
 
 const BLOCKER_FOR: Record<InterventionType, "pharmacy_script" | "transport"> = {
   expedite_script: "pharmacy_script",
@@ -28,6 +28,7 @@ export class Driver {
   private readonly sim: Simulator
   private readonly log = new DecisionLog()
   private current: Intervention[] = []
+  private currentFlags: Flag[] = []
 
   constructor(deps: DriverDeps = {}) {
     this.sim = deps.sim ?? getSimulator()
@@ -41,6 +42,7 @@ export class Driver {
     const stateRef = this.sim.getState().at
     const plan = await this.planner(TICK_PROMPT)
     this.current = plan.interventions.map((iv) => ({ ...iv }))
+    this.currentFlags = plan.flags ?? []
     for (const gap of plan.gaps) {
       this.log.add({
         at: stateRef,
@@ -54,7 +56,7 @@ export class Driver {
       at: stateRef,
       type: "plan",
       stateRef,
-      rationale: `${plan.interventions.length} intervention(s) proposed`,
+      rationale: `${plan.interventions.length} intervention(s) proposed, ${this.currentFlags.length} flagged`,
       payload: plan.interventions,
     })
     return plan
@@ -62,6 +64,10 @@ export class Driver {
 
   proposals(): Intervention[] {
     return this.current.map((iv) => ({ ...iv }))
+  }
+
+  flags(): Flag[] {
+    return this.currentFlags.map((f) => ({ ...f }))
   }
 
   /** Human approves one item → execute it via the simulator and record the outcome. */

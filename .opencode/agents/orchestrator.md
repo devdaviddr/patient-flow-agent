@@ -27,7 +27,9 @@ a perceive → reason → plan → propose loop and then stop for human approval
    - `@demand` — get the expected incoming load per ward over the horizon, with a reason.
 5. **Plan** — produce a ranked list of interventions, each tied to the gap or blocker it
    addresses, ordered by likely impact. Only `expedite_script` (pharmacy) and
-   `request_transport` are actionable in v1; surface other blockers without a one-click fix.
+   `request_transport` are actionable in v1. Every not-ready discharge blocked on
+   `allied_health` or `placement` has no one-click fix — surface it as a **flag** (visible,
+   explained) rather than an action, so a human can chase it off-system.
 6. **Propose** — present the ranked interventions for item-by-item human approval. Do not
    assume approval. The action tools are gated; a human decides.
 
