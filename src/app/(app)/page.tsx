@@ -6,7 +6,8 @@ import type { DecisionRecord, Flag, Intervention } from "@/driver"
 import type { EvalResult } from "@/eval"
 import { BedBoard } from "../components/BedBoard"
 import { ApprovalCards } from "../components/ApprovalCards"
-import { FlaggedColumn } from "../components/FlaggedColumn"
+import { FlaggedBlockers } from "../components/FlaggedBlockers"
+import { CollapsibleColumn } from "../components/CollapsibleColumn"
 import { DecisionTimeline } from "../components/DecisionTimeline"
 import { KpiPanel } from "../components/KpiPanel"
 import { ClockControls } from "../components/ClockControls"
@@ -37,16 +38,22 @@ export default function DashboardPage() {
   const [evaluating, setEvaluating] = useState(false)
   const [playing, setPlaying] = useState(false)
   const [flaggedOpen, setFlaggedOpen] = useState(true)
+  const [proposedOpen, setProposedOpen] = useState(true)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    /* eslint-disable react-hooks/set-state-in-effect */
     setFlaggedOpen(localStorage.getItem("pfo.flagged") !== "0")
+    setProposedOpen(localStorage.getItem("pfo.proposed") !== "0")
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [])
 
-  const toggleFlagged = () =>
-    setFlaggedOpen((o) => {
+  const toggleCol = (
+    key: string,
+    setter: (fn: (o: boolean) => boolean) => void,
+  ) =>
+    setter((o) => {
       const next = !o
-      localStorage.setItem("pfo.flagged", next ? "1" : "0")
+      localStorage.setItem(key, next ? "1" : "0")
       return next
     })
 
@@ -151,7 +158,13 @@ export default function DashboardPage() {
           <BedBoard world={world} />
         </Panel>
 
-        <Panel title={`Proposed interventions (${proposals.length})`} className="lg:flex-[4]">
+        <CollapsibleColumn
+          title="Proposed interventions"
+          count={proposals.length}
+          open={proposedOpen}
+          onToggle={() => toggleCol("pfo.proposed", setProposedOpen)}
+          className={proposedOpen ? "lg:flex-[4]" : "lg:w-12 lg:flex-none"}
+        >
           <div className="scroll-area max-h-[560px] overflow-y-auto pr-1">
             <ApprovalCards
               proposals={proposals}
@@ -160,14 +173,19 @@ export default function DashboardPage() {
               onReject={(id) => decide("/api/driver/reject", id)}
             />
           </div>
-        </Panel>
+        </CollapsibleColumn>
 
-        <FlaggedColumn
-          flags={flags}
+        <CollapsibleColumn
+          title="Flagged — no one-click fix"
+          count={flags.length}
           open={flaggedOpen}
-          onToggle={toggleFlagged}
+          onToggle={() => toggleCol("pfo.flagged", setFlaggedOpen)}
           className={flaggedOpen ? "lg:flex-[3]" : "lg:w-12 lg:flex-none"}
-        />
+        >
+          <div className="scroll-area max-h-[560px] overflow-y-auto pr-1">
+            <FlaggedBlockers flags={flags} />
+          </div>
+        </CollapsibleColumn>
       </div>
 
       <Panel title="Flow KPIs">
