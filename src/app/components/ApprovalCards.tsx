@@ -19,8 +19,11 @@ export function ApprovalCards({
       {proposals.map((iv) => {
         const decided = iv.status !== "proposed"
         return (
-          <div key={iv.id} className="rounded-lg border border-border bg-surface-2 p-3">
-            <div className="text-sm font-semibold">
+          <div
+            key={iv.id}
+            className="rounded-xl border border-border bg-surface p-3.5 shadow-sm transition hover:shadow"
+          >
+            <div className="text-sm font-semibold capitalize">
               {iv.type.replace("_", " ")} · {iv.targetPatientId}
             </div>
             <div className="mt-0.5 text-xs text-muted">

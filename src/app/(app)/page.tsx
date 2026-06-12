@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const [assessing, setAssessing] = useState(false)
   const [asking, setAsking] = useState(false)
   const [evaluating, setEvaluating] = useState(false)
+  const [playing, setPlaying] = useState(false)
 
   const refresh = useCallback(async () => {
     const [w, p, f, r] = await Promise.all([
@@ -56,6 +57,21 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     refresh()
   }, [refresh])
+
+  // Real-time playback: auto-advance the clock while playing.
+  useEffect(() => {
+    if (!playing) return
+    let active = true
+    const id = setInterval(async () => {
+      if (!active) return
+      await fetch("/api/sim/step", { method: "POST" })
+      await refresh()
+    }, 3000)
+    return () => {
+      active = false
+      clearInterval(id)
+    }
+  }, [playing, refresh])
 
   const step = async () => {
     setBusy(true)
@@ -121,8 +137,10 @@ export default function DashboardPage() {
           at={world?.at}
           busy={busy}
           assessing={assessing}
+          playing={playing}
           onStep={step}
           onAssess={assess}
+          onTogglePlay={() => setPlaying((p) => !p)}
         />
       </div>
 
@@ -132,13 +150,15 @@ export default function DashboardPage() {
         </Panel>
 
         <div className="space-y-4">
-          <Panel title="Proposed interventions">
-            <ApprovalCards
-              proposals={proposals}
-              busy={busy}
-              onApprove={(id) => decide("/api/driver/approve", id)}
-              onReject={(id) => decide("/api/driver/reject", id)}
-            />
+          <Panel title={`Proposed interventions (${proposals.length})`}>
+            <div className="scroll-area max-h-[440px] overflow-y-auto pr-1">
+              <ApprovalCards
+                proposals={proposals}
+                busy={busy}
+                onApprove={(id) => decide("/api/driver/approve", id)}
+                onReject={(id) => decide("/api/driver/reject", id)}
+              />
+            </div>
             <FlaggedBlockers flags={flags} />
           </Panel>
           <Panel title="Flow KPIs">

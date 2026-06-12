@@ -1,9 +1,5 @@
 import type { Patient, WorldState } from "@/sim"
-
-function hhmm(at: string): string {
-  const d = new Date(at)
-  return `${`${d.getUTCHours()}`.padStart(2, "0")}:${`${d.getUTCMinutes()}`.padStart(2, "0")}`
-}
+import { fmtTime } from "../lib/time"
 
 const STATUS_ACCENT: Record<string, string> = {
   occupied: "border-l-occupied",
@@ -50,7 +46,7 @@ export function BedBoard({ world }: { world: WorldState | null }) {
                       <>
                         <div className="mt-0.5 font-semibold">{p.id}</div>
                         {p.predictedDischarge && (
-                          <div className="text-muted">→ {hhmm(p.predictedDischarge.at)}</div>
+                          <div className="text-muted">→ {fmtTime(p.predictedDischarge.at)}</div>
                         )}
                         {p.blocker !== "none" && (
                           <span

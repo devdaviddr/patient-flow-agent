@@ -1,9 +1,5 @@
 import type { DecisionRecord } from "@/driver"
-
-function hhmm(at: string): string {
-  const d = new Date(at)
-  return `${`${d.getUTCHours()}`.padStart(2, "0")}:${`${d.getUTCMinutes()}`.padStart(2, "0")}`
-}
+import { fmtDateTime } from "../lib/time"
 
 const TYPE_STYLE: Record<string, string> = {
   gap: "text-dirty",
@@ -24,7 +20,7 @@ export function DecisionTimeline({ records }: { records: DecisionRecord[] }) {
           >
             {r.type}
           </span>
-          <span className="w-14 shrink-0 tabular-nums text-muted">{hhmm(r.stateRef)}</span>
+          <span className="w-32 shrink-0 tabular-nums text-muted">{fmtDateTime(r.stateRef)}</span>
           <span className="text-text">{r.rationale}</span>
         </div>
       ))}
