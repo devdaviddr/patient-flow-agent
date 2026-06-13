@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/auth/auth"
 import { redeem, roleForUnusedKey } from "@/auth/invite"
-import { isSameOrigin } from "@/auth/same-origin"
+import { checkSameOrigin } from "@/auth/csrf"
 
 export const dynamic = "force-dynamic"
 
@@ -28,9 +28,8 @@ const CREDENTIAL_PROVIDER_ID = "credential"
 const GENERIC_ERROR = "Could not create an account. Check your invite key and details."
 
 export async function POST(req: NextRequest): Promise<Response> {
-  if (!isSameOrigin(req)) {
-    return NextResponse.json({ error: "Cross-origin request rejected" }, { status: 403 })
-  }
+  const csrf = checkSameOrigin(req)
+  if (csrf) return csrf
 
   const parsed = RegisterBody.safeParse(await req.json().catch(() => null))
   if (!parsed.success) {

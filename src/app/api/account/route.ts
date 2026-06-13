@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server"
 import { auth } from "@/auth/auth"
 import { withPolicy } from "@/auth/withPolicy"
 import type { SessionUser } from "@/auth/session"
-import { isSameOrigin } from "@/auth/same-origin"
+import { checkSameOrigin } from "@/auth/csrf"
 import { isLastSuperadminError, isOnlySuperadmin } from "@/auth/superadmin"
 
 export const dynamic = "force-dynamic"
@@ -17,9 +17,8 @@ export const dynamic = "force-dynamic"
 export const DELETE = withPolicy(
   "authenticated",
   async (req: NextRequest, _ctx, user: SessionUser | null) => {
-    if (!isSameOrigin(req)) {
-      return NextResponse.json({ error: "Cross-origin request rejected" }, { status: 403 })
-    }
+    const csrf = checkSameOrigin(req)
+    if (csrf) return csrf
     // user is non-null here (the authenticated guard ran); narrow defensively.
     if (!user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 })

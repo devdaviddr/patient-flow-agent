@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server"
 import { z } from "zod"
 import { auth } from "@/auth/auth"
 import { withPolicy } from "@/auth/withPolicy"
-import { isSameOrigin } from "@/auth/same-origin"
+import { checkSameOrigin } from "@/auth/csrf"
 
 export const dynamic = "force-dynamic"
 
@@ -17,9 +17,8 @@ const Body = z.object({
 })
 
 export const POST = withPolicy("authenticated", async (req: NextRequest) => {
-  if (!isSameOrigin(req)) {
-    return NextResponse.json({ error: "Cross-origin request rejected" }, { status: 403 })
-  }
+  const csrf = checkSameOrigin(req)
+  if (csrf) return csrf
   const parsed = Body.safeParse(await req.json().catch(() => null))
   if (!parsed.success) {
     return NextResponse.json(
