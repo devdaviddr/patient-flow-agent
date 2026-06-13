@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useState, type ReactNode } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "../lib/auth"
+import { authGate } from "../lib/auth-gate"
 import { Topbar } from "../components/shell/Topbar"
 import { Sidebar } from "../components/shell/Sidebar"
 import { ChatWidget } from "../components/ChatWidget"
@@ -9,11 +11,19 @@ import { ChatWidget } from "../components/ChatWidget"
 const SIDEBAR_KEY = "pfo.sidebar"
 
 export default function AppLayout({ children }: { children: ReactNode }) {
-  // Middleware (default-deny, server-side) redirects an unauthenticated visitor
-  // to /login before this renders — it is the real gate. Here we only read the
-  // resolved session to avoid a flash of shell before the user is known.
+  // The default-deny middleware is the first gate, but it is OPTIMISTIC: it only
+  // sees that a session cookie is present, not that it is valid. So a logout
+  // (cookie cleared client-side, no navigation) or a stale cookie lands here
+  // authenticated === false. We must actively redirect to /login — returning a
+  // bare `null` would leave the visitor staring at a blank shell. See auth-gate.
   const { isAuthenticated, ready } = useAuth()
+  const router = useRouter()
+  const gate = authGate(ready, isAuthenticated)
   const [collapsed, setCollapsed] = useState(false)
+
+  useEffect(() => {
+    if (gate === "redirect") router.replace("/login")
+  }, [gate, router])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -27,7 +37,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
       return next
     })
 
-  if (!ready || !isAuthenticated) return null // avoid flash / redirecting
+  if (gate !== "render") return null // loading, or redirecting to /login
 
   return (
     <div className="flex h-screen flex-col">
