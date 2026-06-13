@@ -6,6 +6,8 @@
     "forecast_discharges": "allow",
     "forecast_demand": "allow",
     "expedite_script": "ask",
-    "request_transport": "ask"
+    "request_transport": "ask",
+    "task": "allow",
+    "*": "deny"
   }
 }
