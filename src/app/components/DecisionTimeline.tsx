@@ -20,7 +20,10 @@ export function DecisionTimeline({ records }: { records: DecisionRecord[] }) {
           <div key={i} className="flex gap-3 py-2.5 text-xs">
             <span className={`w-20 shrink-0 text-[11px] font-semibold ${t.cls}`}>{t.label}</span>
             <span className="w-32 shrink-0 tabular-nums text-muted">{fmtDateTime(r.stateRef)}</span>
-            <span className="leading-5 text-text">{humanizeText(r.rationale)}</span>
+            <span className="leading-5 text-text">
+              {humanizeText(r.rationale)}
+              {r.actor && <span className="text-muted"> — by {r.actor.name}</span>}
+            </span>
           </div>
         )
       })}

@@ -2,10 +2,10 @@
 
 | | |
 | --- | --- |
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Status** | Draft |
 | **Owner** | David |
-| **Date** | 2026-06-11 |
+| **Date** | 2026-06-13 |
 | **Companions** | `PRD.md` (what & why), `OpenCode-Harness.md` (the agent runtime) |
 
 > This is the **whole-solution architecture**: every component, how they connect, the data that flows
@@ -63,7 +63,7 @@ flowchart TB
     style SYS fill:transparent,stroke:#4a90d9,color:#4a90d9;
 ```
 
-The only external dependency is the **model provider**. There is deliberately **no hospital system, no database of real patients, no auth provider** — all out of scope, and all part of why the project is safe to publish.
+The only external runtime dependency is the **model provider**. There is deliberately **no hospital system and no database of real patients** — out of scope, and part of why the project is safe to publish. Authentication is **self-hosted, not a third-party SaaS**: a Better Auth provider over a local **SQLite store** (accounts + server-side sessions) holds **synthetic staff identities only** (fake `.test` emails, no PII), kept structurally **disjoint from the seeded simulator** so determinism (S12) is untouched. Ingress is a Cloudflare Tunnel (see §9), so the edge — not the app — is the only externally addressed surface.
 
 ## 4. Component architecture (level 2)
 
@@ -205,12 +205,16 @@ interface Intervention {
 }
 
 // Audit + evaluation
-interface DecisionRecord { at: ISOTime; type: 'gap'|'plan'|'action'; stateRef: string; rationale: string; payload: unknown }
+interface DecisionActor { id: string; name: string; role: 'viewer' | 'coordinator' }  // denormalized snapshot
+interface DecisionRecord {
+  at: ISOTime; type: 'gap'|'plan'|'action'; stateRef: string; rationale: string; payload: unknown;
+  actor?: DecisionActor;  // who approved/rejected — supplied by the driver/web-session layer, not the harness
+}
 interface FlowKPIs  { accessBlockHours: number; endOfDayHeadroom: number }
 interface EvalResult { scenario: string; seed: number; withAgent: FlowKPIs; withoutAgent: FlowKPIs }
 ```
 
-**Where each contract lives:** `WorldState`, `SimEvent`, forecasts → the **simulator** (over HTTP). `CapacityGap`, `Intervention` → reasoning **outputs** from the orchestrator. `DecisionRecord` → the **harness session history**, exported for the audit view. `FlowKPIs`/`EvalResult` → the **eval harness**.
+**Where each contract lives:** `WorldState`, `SimEvent`, forecasts → the **simulator** (over HTTP). `CapacityGap`, `Intervention` → reasoning **outputs** from the orchestrator. `DecisionRecord` → the **harness session history**, exported for the audit view; its optional `actor` is a denormalized snapshot of the signed-in approver, supplied by the **driver/web-session layer** (the approve/reject routes read the validated session and pass it to the driver) — *not* by the harness. `FlowKPIs`/`EvalResult` → the **eval harness**.
 
 ## 6. Control flow — one planning tick
 
@@ -297,31 +301,40 @@ Because all domain logic sits behind the tools, an automated invariant test can 
 
 ```mermaid
 flowchart TB
-    subgraph LOCAL["Local-first (v1 — how it ships)"]
-        N1["Next.js dev server<br/>(UI + loop driver + eval + simulator)"]
-        O1["opencode serve<br/>(headless, localhost)"]
+    EDGE["Cloudflare edge<br/>TLS · WAF/DDoS · public HTTPS (BETTER_AUTH_URL)"]
+    CFD["cloudflared (tunnel)<br/>dials outbound — no published origin port"]
+
+    subgraph LOCAL["Self-hosted stack (how it ships)"]
+        N1["Next.js server<br/>(UI + loop driver + eval + simulator + auth)"]
+        O1["opencode serve<br/>(headless)"]
         M1["Anthropic API key  ·  or  ·  local Ollama"]
+        DB1[("SQLite auth store<br/>accounts + sessions<br/>(mounted volume — persists restarts)")]
         N1 <-->|"SDK / HTTP"| O1
         O1 -->|"reasoning"| M1
+        N1 -->|"better-sqlite3"| DB1
     end
 
-    subgraph CLOUD["Azure Container Apps (noted for later — non-goal for v1)"]
+    subgraph CLOUD["Azure Container Apps (noted for later — non-goal)"]
         N2["App container"]
         O2["OpenCode container"]
         N2 <--> O2
     end
 
+    EDGE -->|"tunnel"| CFD
+    CFD -->|"CF-Connecting-IP forwarded"| N1
     LOCAL -.->|"containerise later"| CLOUD
 
     classDef l fill:#1e3a5f,stroke:#4a90d9,color:#e8f0fe;
     classDef c fill:#2e2a4d,stroke:#9b8cff,color:#ece8ff;
-    class N1,O1,M1 l;
+    classDef e fill:#3d3416,stroke:#d4a72c,color:#fdf3d6;
+    class N1,O1,M1,DB1 l;
     class N2,O2 c;
+    class EDGE,CFD e;
     style LOCAL fill:transparent,stroke:#4a90d9,color:#4a90d9;
     style CLOUD fill:transparent,stroke:#9b8cff,color:#9b8cff;
 ```
 
-v1 ships **local-first**: `opencode serve` plus the Next.js dev server, with the simulator in-process. Containerising on Azure Container Apps is noted for later but is explicitly a non-goal for v1. "Rollback" is trivial — reset means reseed the simulator.
+The stack ships **self-hosted**: `opencode serve` plus the Next.js server, with the simulator in-process. Ingress is a **Cloudflare Tunnel** — `cloudflared` dials outbound to the edge, so the **app port is never published** and the origin is not directly routable; TLS terminates at the edge (keeping the `Secure` session cookie valid) and the real client IP arrives as `CF-Connecting-IP`, which the sign-in rate limiter keys on. Accounts and server-side sessions live in a **SQLite file on a mounted volume**, so they **survive a container restart** without re-seeding. Containerising on Azure Container Apps is noted for later but is explicitly a non-goal. "Rollback" is trivial — reset means reseed the simulator (the auth store persists independently).
 
 ## 10. Technology stack
 
@@ -351,3 +364,4 @@ v1 ships **local-first**: `opencode serve` plus the Next.js dev server, with the
 | Version | Date | Note |
 | --- | --- | --- |
 | 1.0.0 | 2026-06-11 | Initial whole-solution architecture: principles, system-context (L1) and component (L2) diagrams, component breakdown, data contracts, control-flow sequence, safety-boundary diagram, cross-cutting concerns, deployment view, stack, risks. |
+| 1.1.0 | 2026-06-13 | Auth (0.4.0): §3 — self-hosted auth provider (Better Auth) + SQLite store of synthetic identities, disjoint from the seeded sim; §5 — added `DecisionActor` and `DecisionRecord.actor` (denormalized snapshot, supplied by the driver/web-session layer); §9 — Cloudflare Tunnel ingress (un-published origin port, edge TLS, `CF-Connecting-IP`) and the SQLite persistence volume. |

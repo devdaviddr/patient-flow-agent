@@ -5,6 +5,15 @@ node_modules/
 .env
 .env.local
 
+# Local-only Docker Compose override (publishes the app port for host access;
+# the committed compose file leaves it unpublished for the tunnel ingress model)
+docker-compose.override.yml
+
+# Local auth store (SQLite); a volume-mounted file in deployment
+auth.db
+auth.db-shm
+auth.db-wal
+
 # Next.js build output
 .next/
 out/

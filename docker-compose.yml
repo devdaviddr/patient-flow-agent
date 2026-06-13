@@ -9,8 +9,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
+    # The app port is deliberately NOT published to the host. Ingress is a
+    # Cloudflare Tunnel (cloudflared) that dials outbound and reaches the origin
+    # over the compose network, so the origin is never directly routable and
+    # CF-Connecting-IP can be trusted for sign-in rate-limit keying.
+    expose:
+      - "3000"
     environment:
       - NODE_ENV=development
       - OPENCODE_URL=http://opencode:4096
@@ -18,6 +22,19 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - SCENARIO=${SCENARIO:-normal-weekday}
       - SEED=${SEED:-42}
+      # Auth (Better Auth + SQLite/Drizzle). The DB lives on the auth-data volume
+      # so accounts + sessions survive a container restart.
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-}
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3000}
+      - AUTH_DB_PATH=/data/auth.db
+    volumes:
+      - auth-data:/data
+    # First-boot wiring: apply migrations and run the idempotent seed (no-op on
+    # re-runs), then start the dev server. Keeps accounts available without a
+    # manual seed step after a fresh volume.
+    command: >
+      sh -c "npx drizzle-kit migrate && npm run seed:auth &&
+             npm run dev -- --hostname 0.0.0.0"
     depends_on:
       opencode:
         condition: service_started
@@ -57,3 +74,5 @@ services:
 
 volumes:
   ollama-models:
+  # SQLite auth store (accounts + sessions) — persists across container restarts.
+  auth-data:
