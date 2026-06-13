@@ -17,10 +17,22 @@ function isPublic(pathname: string): boolean {
   return PUBLIC_PAGES.includes(pathname)
 }
 
+// The trusted OpenCode agent reaches /api/sim/* server-to-server with a shared
+// service token instead of a browser session. Let it past the default-deny gate;
+// the route-layer guard (session.ts) re-checks the token in constant time. Edge
+// runtime can't do constant-time compare, but this is only the optimistic gate.
+function isSimServiceCall(req: NextRequest): boolean {
+  const token = process.env.SIM_SERVICE_TOKEN
+  if (!token) return false
+  if (!req.nextUrl.pathname.startsWith("/api/sim")) return false
+  return req.headers.get("x-sim-service-token") === token
+}
+
 export function middleware(req: NextRequest): NextResponse {
   const { pathname } = req.nextUrl
 
   if (isPublic(pathname)) return NextResponse.next()
+  if (isSimServiceCall(req)) return NextResponse.next()
 
   const hasSession = getSessionCookie(req) !== null
   if (hasSession) return NextResponse.next()

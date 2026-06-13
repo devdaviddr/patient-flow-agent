@@ -19,6 +19,9 @@ services:
       - NODE_ENV=development
       - OPENCODE_URL=http://opencode:4096
       - SIM_URL=http://localhost:3000/api/sim
+      # Shared secret the agent's tools present to reach the (now auth-gated) sim
+      # API server-to-server; scoped to /api/sim/* by the route guard.
+      - SIM_SERVICE_TOKEN=${SIM_SERVICE_TOKEN:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - SCENARIO=${SCENARIO:-normal-weekday}
       - SEED=${SEED:-42}
@@ -57,6 +60,8 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OLLAMA_URL=http://ollama:11434
       - SIM_URL=http://app:3000/api/sim
+      # Same shared secret as the app — the agent's tools send it to reach the sim.
+      - SIM_SERVICE_TOKEN=${SIM_SERVICE_TOKEN:-}
       # Server binds 0.0.0.0 — protect it with HTTP basic auth.
       - OPENCODE_SERVER_PASSWORD=${OPENCODE_SERVER_PASSWORD:-}
     volumes:

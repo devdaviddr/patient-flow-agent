@@ -14,7 +14,7 @@
 
 import { readdirSync } from "node:fs"
 import { join } from "node:path"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   COORDINATOR_USER,
   SUPERADMIN_USER,
@@ -213,5 +213,59 @@ describe("admin-plugin endpoints are independently gated to superadmin (B7)", ()
     const res = await fireAdmin(SUPERADMIN_USER)
     expect(res.status).not.toBe(401)
     expect(res.status).not.toBe(403)
+  })
+})
+
+// Fix A: the OpenCode agent reaches the auth-gated sim API server-to-server with a
+// shared service token (it has no browser session). The token is scoped to
+// /api/sim/* only, so it admits the agent there but is worthless on driver/admin.
+describe("agent → sim service token (scoped to /api/sim/*)", () => {
+  const TOKEN = "test-sim-service-token-deadbeef"
+  const original = process.env.SIM_SERVICE_TOKEN
+
+  beforeAll(() => {
+    process.env.SIM_SERVICE_TOKEN = TOKEN
+  })
+  afterAll(() => {
+    if (original === undefined) delete process.env.SIM_SERVICE_TOKEN
+    else process.env.SIM_SERVICE_TOKEN = original
+  })
+
+  const fire = async (pathname: string, token: string | null): Promise<Response> => {
+    setSession(null) // no browser session — the token is the only credential
+    const route = ROUTES.find((r) => r.pathname === pathname)
+    const mod = (await import(route!.importPath)) as Record<string, unknown>
+    const isGet = typeof mod.GET === "function"
+    const handler = (mod.GET ?? mod.POST) as (
+      req: Request,
+      ctx: { params: Promise<Record<string, string>> },
+    ) => Promise<Response>
+    const headers: Record<string, string> = { "content-type": "application/json" }
+    if (token !== null) headers["x-sim-service-token"] = token
+    const req = new Request(`http://localhost${pathname}`, {
+      method: isGet ? "GET" : "POST",
+      headers,
+      body: isGet ? undefined : "{}",
+    })
+    try {
+      return await handler(req, { params: Promise.resolve({}) })
+    } catch {
+      return new Response(null, { status: 500 })
+    }
+  }
+
+  it("a valid token admits the agent to a sim route with no session (not 401/403)", async () => {
+    const res = await fire("/api/sim/state", TOKEN)
+    expect(res.status).not.toBe(401)
+    expect(res.status).not.toBe(403)
+  })
+  it("a wrong token is refused 401", async () => {
+    expect((await fire("/api/sim/state", "wrong-token")).status).toBe(401)
+  })
+  it("no token is refused 401", async () => {
+    expect((await fire("/api/sim/state", null)).status).toBe(401)
+  })
+  it("the token is worthless off the sim path — driver stays 401", async () => {
+    expect((await fire("/api/driver/approve", TOKEN)).status).toBe(401)
   })
 })

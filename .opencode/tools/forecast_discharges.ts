@@ -12,7 +12,7 @@ export default tool({
     try {
       const r = await fetch(`${process.env.SIM_URL}/forecast/discharges`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "x-sim-service-token": process.env.SIM_SERVICE_TOKEN ?? "" },
         body: JSON.stringify(a),
       })
       if (!r.ok) return JSON.stringify({ error: `simulator returned ${r.status}` })

@@ -7,7 +7,9 @@ export default tool({
   args: {},
   async execute() {
     try {
-      const r = await fetch(`${process.env.SIM_URL}/state`)
+      const r = await fetch(`${process.env.SIM_URL}/state`, {
+        headers: { "x-sim-service-token": process.env.SIM_SERVICE_TOKEN ?? "" },
+      })
       if (!r.ok) return JSON.stringify({ error: `simulator returned ${r.status}` })
       return await r.text()
     } catch {
