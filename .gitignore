@@ -5,6 +5,11 @@ node_modules/
 .env
 .env.local
 
+# Local auth store (SQLite); a volume-mounted file in deployment
+auth.db
+auth.db-shm
+auth.db-wal
+
 # Next.js build output
 .next/
 out/

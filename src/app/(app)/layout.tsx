@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState, type ReactNode } from "react"
-import { useRouter } from "next/navigation"
 import { useAuth } from "../lib/auth"
 import { Topbar } from "../components/shell/Topbar"
 import { Sidebar } from "../components/shell/Sidebar"
@@ -10,18 +9,16 @@ import { ChatWidget } from "../components/ChatWidget"
 const SIDEBAR_KEY = "pfo.sidebar"
 
 export default function AppLayout({ children }: { children: ReactNode }) {
+  // Middleware (default-deny, server-side) redirects an unauthenticated visitor
+  // to /login before this renders — it is the real gate. Here we only read the
+  // resolved session to avoid a flash of shell before the user is known.
   const { isAuthenticated, ready } = useAuth()
-  const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (ready) setCollapsed(localStorage.getItem(SIDEBAR_KEY) === "1")
   }, [ready])
-
-  useEffect(() => {
-    if (ready && !isAuthenticated) router.replace("/login")
-  }, [ready, isAuthenticated, router])
 
   const toggle = () =>
     setCollapsed((c) => {

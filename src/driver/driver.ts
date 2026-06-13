@@ -6,6 +6,7 @@ import { getSimulator, Simulator, type ActionResult, type SimEvent } from "@/sim
 import { DecisionLog } from "./records"
 import type {
   Assessment,
+  DecisionActor,
   Flag,
   Intervention,
   InterventionType,
@@ -127,7 +128,7 @@ export class Driver {
   }
 
   /** Human approves one item → execute it via the simulator and record the outcome. */
-  approve(interventionId: string): ActionResult {
+  approve(interventionId: string, actor?: DecisionActor): ActionResult {
     const iv = this.current.find((i) => i.id === interventionId)
     if (!iv) {
       return { applied: false, patientId: "", note: `No such intervention ${interventionId}` }
@@ -141,12 +142,13 @@ export class Driver {
       stateRef,
       rationale: `Approved — ${iv.type} for ${iv.targetPatientId} (${result.applied ? "blocker cleared, bed will free up" : "no change"})`,
       payload: { intervention: iv, result },
+      actor,
     })
     return result
   }
 
   /** Human rejects one item → record it; state is untouched. */
-  reject(interventionId: string): void {
+  reject(interventionId: string, actor?: DecisionActor): void {
     const iv = this.current.find((i) => i.id === interventionId)
     if (!iv) return
     iv.status = "rejected"
@@ -157,6 +159,7 @@ export class Driver {
       stateRef,
       rationale: `Rejected — ${iv.type} for ${iv.targetPatientId} (no change)`,
       payload: { intervention: iv, result: { applied: false } },
+      actor,
     })
   }
 

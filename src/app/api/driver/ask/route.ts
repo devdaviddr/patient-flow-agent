@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
 import { askOrchestrator } from "@/driver/adapter"
+import { withPolicy } from "@/auth/withPolicy"
 
 export const dynamic = "force-dynamic"
 
 // POST /api/driver/ask {question} -> plain-language answer from the orchestrator (R9)
-export async function POST(req: Request) {
+export const POST = withPolicy("authenticated", async (req) => {
   const { question } = await req.json().catch(() => ({}))
   if (!question) {
     return NextResponse.json({ error: "question required" }, { status: 400 })
@@ -17,4 +18,4 @@ export async function POST(req: Request) {
       { status: 502 },
     )
   }
-}
+})

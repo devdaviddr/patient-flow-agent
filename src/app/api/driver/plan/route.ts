@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server"
 import { getDriver } from "@/driver"
+import { withPolicy } from "@/auth/withPolicy"
 
 export const dynamic = "force-dynamic"
 
 // POST /api/driver/plan -> run the agent, return proposed gaps + interventions.
 // Needs opencode serve (a model round-trip).
-export async function POST() {
+export const POST = withPolicy("operator", async () => {
   try {
     const plan = await getDriver().plan()
     return NextResponse.json(plan)
@@ -15,4 +16,4 @@ export async function POST() {
       { status: 502 },
     )
   }
-}
+})

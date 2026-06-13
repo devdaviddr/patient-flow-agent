@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { MOCK_USER } from "../../lib/auth"
+import { useAuth } from "../../lib/auth"
 import { Panel } from "../../components/Panel"
 
 export default function SettingsPage() {
+  const { user } = useAuth()
   const [scenario, setScenario] = useState("normal-weekday")
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState<string | null>(null)
@@ -70,16 +71,16 @@ export default function SettingsPage() {
       <Panel title="Profile">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-base font-semibold text-white">
-            {MOCK_USER.initials}
+            {user?.initials}
           </div>
           <div>
-            <div className="font-medium">{MOCK_USER.name}</div>
+            <div className="font-medium">{user?.name}</div>
             <div className="text-xs text-muted">
-              {MOCK_USER.role} · {MOCK_USER.email}
+              {user?.role} · {user?.email}
             </div>
           </div>
           <span className="ml-auto rounded-full border border-border px-2 py-0.5 text-[11px] text-muted">
-            mock user
+            signed in
           </span>
         </div>
       </Panel>

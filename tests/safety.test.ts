@@ -37,6 +37,11 @@ const AUTHORED_FILES = [
   ".opencode/agents/orchestrator.md",
   ".opencode/agents/discharge.md",
   ".opencode/agents/demand.md",
+  // 0.4.0 auth strings: seed display titles + demo credentials + login UI copy.
+  // Auth records carry staff identity only — never clinical content (S13).
+  "src/auth/seed.ts",
+  "src/auth/demo-credentials.ts",
+  "src/app/login/page.tsx",
 ]
 
 function offendingTerms(text: string): string[] {

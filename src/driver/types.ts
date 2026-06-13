@@ -37,12 +37,23 @@ export interface ProposedPlan {
   flags: Flag[] // non-actionable blockers, read-only
 }
 
+// Who approved/rejected an action, snapshotted onto the record (not an FK) so the
+// audit trail survives account deletion in a later release (Architecture.md §5, A8).
+export interface DecisionActor {
+  id: string
+  name: string
+  role: "viewer" | "coordinator"
+}
+
 export interface DecisionRecord {
   at: ISOTime
   type: "gap" | "plan" | "action"
   stateRef: ISOTime
   rationale: string
   payload: unknown
+  // Present on human-driven records (approve/reject); absent on agent-emitted
+  // gap/plan records and on pre-auth records.
+  actor?: DecisionActor
 }
 
 export interface AssessmentLogLine {
