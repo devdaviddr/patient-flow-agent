@@ -4,7 +4,7 @@
 | --- | --- |
 | **Feature** | Layer onboarding + administration onto the `0.4.0` auth foundation: **invite-gated sign-up** (50 single-use, hashed, role-bearing keys), a **`superadmin`** tier with a **user-administration area**, and **self-service change-password / delete-account**. |
 | **Target release** | `0.5.0` |
-| **Status** | 📝 Queued — split out of `0.4.0` on multi-agent review advice (ship the auth headline first). |
+| **Status** | 📝 Planned → awaiting approval — `implementation.md` drafted (SDD step 2); split out of `0.4.0` on multi-agent review advice (ship the auth headline first). |
 | **Builds on** | `spec/auth/` (`0.4.0`): Better Auth + SQLite/Drizzle, server sessions, `viewer`/`coordinator` roles, default-deny `withPolicy` enforcement, `DecisionRecord.actor`. |
 | **Prior detail** | A fuller first draft of the invite + admin design (with the same decisions) is preserved in git history at `spec/auth/{spec,implementation}.md` before the `0.4.0` split — recover it when this release starts. |
 
