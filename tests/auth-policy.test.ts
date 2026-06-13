@@ -17,6 +17,7 @@ import { join } from "node:path"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   COORDINATOR_USER,
+  SUPERADMIN_USER,
   VIEWER_USER,
   mockAuth,
   setSession,
@@ -85,20 +86,28 @@ function makeRequest(pathname: string): Request {
   })
 }
 
-// Invoke whichever HTTP verb the route exports, through withPolicy.
+// Invoke whichever HTTP verb the route exports, through withPolicy. A handler that
+// PASSES its guard may then fail on a dependency the guard test doesn't stand up
+// (no migrated DB, mocked auth.$context) — that throw is NOT an authz refusal, so we
+// surface it as a 500. The guard outcomes under test (401/403, or admitted) are what
+// matter; withPolicy returns its refusals as Responses, never throws.
 async function fireRoute(importPath: string, pathname: string): Promise<Response> {
   const mod = (await import(importPath)) as Record<string, unknown>
   const handler = (mod.POST ?? mod.GET ?? mod.PUT ?? mod.DELETE ?? mod.PATCH) as
     | ((req: Request, ctx: { params: Promise<Record<string, string>> }) => Promise<Response> | Response)
     | undefined
   if (!handler) throw new Error(`No HTTP handler exported from ${importPath}`)
-  return handler(makeRequest(pathname), { params: Promise.resolve({}) })
+  try {
+    return await handler(makeRequest(pathname), { params: Promise.resolve({}) })
+  } catch {
+    return new Response(null, { status: 500 })
+  }
 }
 
 describe("route discovery sanity", () => {
-  it("finds the 18 on-disk api routes", () => {
-    // 17 app routes + the Better Auth catch-all handler.
-    expect(ROUTES.length).toBe(18)
+  it("finds the 22 on-disk api routes", () => {
+    // 21 app routes + the Better Auth catch-all handler.
+    expect(ROUTES.length).toBe(22)
   })
 })
 
@@ -117,6 +126,7 @@ describe("explicit classification — no route relies on the fail-closed default
 // The protected (non-public) routes we actually fire probes at.
 const PROTECTED = ROUTES.filter((r) => policyFor(r.pathname) !== "public")
 const OPERATOR_ROUTES = PROTECTED.filter((r) => policyFor(r.pathname) === "operator")
+const SUPERADMIN_ROUTES = PROTECTED.filter((r) => policyFor(r.pathname) === "superadmin")
 
 beforeEach(() => {
   setSession(null)
@@ -138,6 +148,17 @@ describe("the guard executes — a viewer hitting an operator route is refused 4
   })
 })
 
+describe("the guard executes — a non-superadmin hitting a superadmin route is refused 403 (B7)", () => {
+  it.each(SUPERADMIN_ROUTES)("$pathname → 403 for a viewer", async ({ pathname, importPath }) => {
+    setSession(VIEWER_USER)
+    expect((await fireRoute(importPath, pathname)).status).toBe(403)
+  })
+  it.each(SUPERADMIN_ROUTES)("$pathname → 403 for a coordinator", async ({ pathname, importPath }) => {
+    setSession(COORDINATOR_USER)
+    expect((await fireRoute(importPath, pathname)).status).toBe(403)
+  })
+})
+
 describe("the guard lets the authorized caller through (A6)", () => {
   // For each protected route, the role that should be admitted.
   const cases: { pathname: string; importPath: string; as: MockUser; tier: PolicyTier }[] =
@@ -146,8 +167,14 @@ describe("the guard lets the authorized caller through (A6)", () => {
       return {
         pathname: r.pathname,
         importPath: r.importPath,
-        // Operator routes need a coordinator; authenticated routes admit a viewer.
-        as: tier === "operator" ? COORDINATOR_USER : VIEWER_USER,
+        // Superadmin routes need a superadmin; operator routes a coordinator;
+        // authenticated routes admit a viewer.
+        as:
+          tier === "superadmin"
+            ? SUPERADMIN_USER
+            : tier === "operator"
+              ? COORDINATOR_USER
+              : VIEWER_USER,
         tier,
       }
     })
@@ -155,8 +182,35 @@ describe("the guard lets the authorized caller through (A6)", () => {
   it.each(cases)("$pathname admits the $tier caller (not 401/403)", async ({ pathname, importPath, as }) => {
     setSession(as)
     const res = await fireRoute(importPath, pathname)
-    // The guard passed: the handler ran (it may 200/400/502 on its own merits, but
-    // it is NOT an authn/authz refusal).
+    // The guard passed: the handler ran (it may 200/400/500/502 on its own merits,
+    // but it is NOT an authn/authz refusal).
+    expect(res.status).not.toBe(401)
+    expect(res.status).not.toBe(403)
+  })
+})
+
+// The admin-plugin CRUD lives under the /api/auth/[...all] catch-all, so the
+// discovery loop above can't probe it per-endpoint. Fire the catch-all directly at
+// an admin path to prove the independent superadmin gate (decision 7, B7).
+describe("admin-plugin endpoints are independently gated to superadmin (B7)", () => {
+  const authRoute = ROUTES.find((r) => r.pathname.startsWith("/api/auth"))
+  const fireAdmin = async (user: MockUser | null): Promise<Response> => {
+    setSession(user)
+    const mod = (await import(authRoute!.importPath)) as { GET: (req: Request) => Promise<Response> }
+    return mod.GET(new Request("http://localhost/api/auth/admin/list-users", { method: "GET" }))
+  }
+
+  it("unauthenticated → 401", async () => {
+    expect((await fireAdmin(null)).status).toBe(401)
+  })
+  it("viewer → 403", async () => {
+    expect((await fireAdmin(VIEWER_USER)).status).toBe(403)
+  })
+  it("coordinator → 403", async () => {
+    expect((await fireAdmin(COORDINATOR_USER)).status).toBe(403)
+  })
+  it("superadmin → delegated, not refused (not 401/403)", async () => {
+    const res = await fireAdmin(SUPERADMIN_USER)
     expect(res.status).not.toBe(401)
     expect(res.status).not.toBe(403)
   })

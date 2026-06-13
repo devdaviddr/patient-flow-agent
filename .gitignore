@@ -14,6 +14,10 @@ auth.db
 auth.db-shm
 auth.db-wal
 
+# Seed output — emitted once, never committed (invite keys, superadmin password)
+.invite-keys.txt
+.superadmin-credentials.txt
+
 # Next.js build output
 .next/
 out/

@@ -42,6 +42,11 @@ const AUTHORED_FILES = [
   "src/auth/seed.ts",
   "src/auth/demo-credentials.ts",
   "src/app/login/page.tsx",
+  // 0.5.0 onboarding/admin copy: sign-up, invites, user administration, settings.
+  "src/auth/invite.ts",
+  "src/app/register/page.tsx",
+  "src/app/(app)/admin/page.tsx",
+  "src/app/(app)/settings/page.tsx",
 ]
 
 function offendingTerms(text: string): string[] {

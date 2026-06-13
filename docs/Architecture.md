@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| **Version** | 1.1.0 |
+| **Version** | 1.2.0 |
 | **Status** | Draft |
 | **Owner** | David |
 | **Date** | 2026-06-13 |
@@ -63,7 +63,7 @@ flowchart TB
     style SYS fill:transparent,stroke:#4a90d9,color:#4a90d9;
 ```
 
-The only external runtime dependency is the **model provider**. There is deliberately **no hospital system and no database of real patients** — out of scope, and part of why the project is safe to publish. Authentication is **self-hosted, not a third-party SaaS**: a Better Auth provider over a local **SQLite store** (accounts + server-side sessions) holds **synthetic staff identities only** (fake `.test` emails, no PII), kept structurally **disjoint from the seeded simulator** so determinism (S12) is untouched. Ingress is a Cloudflare Tunnel (see §9), so the edge — not the app — is the only externally addressed surface.
+The only external runtime dependency is the **model provider**. There is deliberately **no hospital system and no database of real patients** — out of scope, and part of why the project is safe to publish. Authentication is **self-hosted, not a third-party SaaS**: a Better Auth provider over a local **SQLite store** (accounts + server-side sessions + invite keys) holds **synthetic staff identities only** (fake `.test` emails, no PII), kept structurally **disjoint from the seeded simulator** so determinism (S12) is untouched. The role hierarchy is **viewer ⊂ coordinator ⊂ superadmin**; onboarding is **invite-gated** (single-use keys stored hashed, never plaintext) and `superadmin` user administration runs through the Better Auth **admin plugin**, which is **independently re-gated** at the route layer so the plugin is never the sole authority. The **last superadmin cannot be deleted or demoted** — a DB-level trigger enforces it on every path. Ingress is a Cloudflare Tunnel (see §9), so the edge — not the app — is the only externally addressed surface.
 
 ## 4. Component architecture (level 2)
 
@@ -205,7 +205,7 @@ interface Intervention {
 }
 
 // Audit + evaluation
-interface DecisionActor { id: string; name: string; role: 'viewer' | 'coordinator' }  // denormalized snapshot
+interface DecisionActor { id: string; name: string; role: 'viewer' | 'coordinator' | 'superadmin' }  // denormalized snapshot
 interface DecisionRecord {
   at: ISOTime; type: 'gap'|'plan'|'action'; stateRef: string; rationale: string; payload: unknown;
   actor?: DecisionActor;  // who approved/rejected — supplied by the driver/web-session layer, not the harness
@@ -365,3 +365,4 @@ The stack ships **self-hosted**: `opencode serve` plus the Next.js server, with 
 | --- | --- | --- |
 | 1.0.0 | 2026-06-11 | Initial whole-solution architecture: principles, system-context (L1) and component (L2) diagrams, component breakdown, data contracts, control-flow sequence, safety-boundary diagram, cross-cutting concerns, deployment view, stack, risks. |
 | 1.1.0 | 2026-06-13 | Auth (0.4.0): §3 — self-hosted auth provider (Better Auth) + SQLite store of synthetic identities, disjoint from the seeded sim; §5 — added `DecisionActor` and `DecisionRecord.actor` (denormalized snapshot, supplied by the driver/web-session layer); §9 — Cloudflare Tunnel ingress (un-published origin port, edge TLS, `CF-Connecting-IP`) and the SQLite persistence volume. |
+| 1.2.0 | 2026-06-13 | Onboarding + admin (0.5.0): §3 — invite-key store (hashed, single-use), the `viewer ⊂ coordinator ⊂ superadmin` hierarchy, the admin plugin behind an independent route-layer gate, and the DB-level last-superadmin trigger; §5 — `DecisionActor.role` widened to include `superadmin`. |

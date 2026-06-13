@@ -8,7 +8,7 @@
 
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
-import { AuthError, requireAuth, requireOperator, type SessionUser } from "./session"
+import { AuthError, requireAuth, requireOperator, requireSuperadmin, type SessionUser } from "./session"
 import type { PolicyTier } from "./policy"
 
 // The Next App Router passes a context object ({ params }) as the second arg.
@@ -29,7 +29,9 @@ export function withPolicy(tier: PolicyTier, handler: GuardedHandler): RouteHand
   return async (req, ctx) => {
     let user: SessionUser | null = null
     try {
-      if (tier === "operator") {
+      if (tier === "superadmin") {
+        user = await requireSuperadmin(req)
+      } else if (tier === "operator") {
         user = await requireOperator(req)
       } else if (tier === "authenticated") {
         user = await requireAuth(req)

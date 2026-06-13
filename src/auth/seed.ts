@@ -10,8 +10,12 @@
 // are DEMO-ONLY, committed deliberately so a reviewer can sign in as either role;
 // they guard nothing real. The login page imports these same constants (A11).
 
+import { randomBytes } from "node:crypto"
+import { writeFileSync } from "node:fs"
+import { join } from "node:path"
 import { auth } from "./auth"
 import type { Role } from "./schema"
+import { count as inviteCount, generateInvites } from "./invite"
 import {
   COORDINATOR_EMAIL,
   COORDINATOR_PASSWORD,
@@ -72,11 +76,58 @@ async function seedAccount(account: SeedAccount): Promise<"created" | "exists"> 
   return "created"
 }
 
+// The superadmin is bootstrap-only and NEVER advertised on the login screen
+// (decision 6). Its password is out-of-band: SUPERADMIN_PASSWORD if set, otherwise
+// a random one printed once at creation — never a committed constant.
+const SUPERADMIN_EMAIL = "superadmin@example-hospital.test"
+const INVITE_KEYS_FILE = join(process.cwd(), ".invite-keys.txt")
+
+async function seedSuperadmin(): Promise<void> {
+  const envPassword = process.env.SUPERADMIN_PASSWORD
+  const password = envPassword ?? randomBytes(18).toString("base64url")
+  const result = await seedAccount({
+    email: SUPERADMIN_EMAIL,
+    password,
+    name: "S. Administrator",
+    role: "superadmin",
+  })
+  console.log(`auth seed: ${SUPERADMIN_EMAIL} (superadmin) — ${result}`)
+  if (result === "created" && !envPassword) {
+    console.log(
+      `auth seed: superadmin password (shown once) — ${password}\n` +
+        `           set SUPERADMIN_PASSWORD to choose your own; it is never committed.`,
+    )
+  }
+}
+
+// Mint the invite keys once (B2). Idempotent: skip if any invite already exists, so
+// re-running the seed never regenerates keys or overwrites the emitted file.
+function seedInvites(): void {
+  const existing = inviteCount()
+  if (existing > 0) {
+    console.log(`auth seed: invites — ${existing} already present, skipping`)
+    return
+  }
+  const generated = generateInvites(new Date())
+  const body = generated.map((g) => `${g.key}  ${g.role}`).join("\n")
+  writeFileSync(
+    INVITE_KEYS_FILE,
+    "# Patient Flow Orchestrator — invite keys (synthetic, demo-only).\n" +
+      `# ${generated.length} single-use keys; hand one out to onboard a viewer/coordinator.\n` +
+      "# Gitignored and emitted ONCE — the DB stores only hashes.\n\n" +
+      `${body}\n`,
+    "utf8",
+  )
+  console.log(`auth seed: invites — generated ${generated.length} keys → ${INVITE_KEYS_FILE}`)
+}
+
 export async function seedAuth(): Promise<void> {
   for (const account of SEED_ACCOUNTS) {
     const result = await seedAccount(account)
     console.log(`auth seed: ${account.email} (${account.role}) — ${result}`)
   }
+  await seedSuperadmin()
+  seedInvites()
 }
 
 // Allow `tsx src/auth/seed.ts` directly. Fail loud and exit non-zero on error.

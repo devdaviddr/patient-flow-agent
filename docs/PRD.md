@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| **Version** | 1.5.0 |
+| **Version** | 1.6.0 |
 | **Status** | Approved |
 | **Owner** | Daniel David |
 | **Date** | 2026-06-13 |
@@ -41,7 +41,7 @@ The system is a **portfolio piece**. It runs entirely on **made-up (synthetic) d
 - **No clinical decisions** of any kind, anywhere in the system.
 - **No trained AI forecaster yet.** Predictions use a simple, transparent rule set so you can always see *why* a prediction was made.
 - **No fully automatic actions.** Nothing that changes state runs without a human approving it.
-- **No multiple hospitals.** One simulated hospital. The app now has **real, self-hosted logins** — seeded accounts with hashed passwords, server-side sessions, and two roles (viewer / coordinator) that gate who can approve actions — served behind a Cloudflare Tunnel; public sign-up and user administration remain out of scope for now.
+- **No multiple hospitals.** One simulated hospital. The app has **real, self-hosted logins** — accounts with hashed passwords, server-side sessions, and a role hierarchy (viewer / coordinator / superadmin) that gates who can approve actions — served behind a Cloudflare Tunnel. **Onboarding and administration are now in scope (0.5.0):** invite-gated sign-up (single-use keys), a superadmin user-administration area, and self-service change-password / delete-account. Email verification, password-reset-by-email, MFA, OAuth, and multi-tenant orgs remain out of scope.
 
 ## 5. What it must do
 
@@ -260,3 +260,4 @@ Guiding principle: **keep it as simple as possible.** This is a portfolio projec
 | 1.3.0 | 2026-06-11 | Expanded §7: AI-harness framing (two nested loops), agent roster (orchestrator + two read-only subagents) with model/tool/permission detail, harness-vs-our-code table, and an enriched architecture diagram showing agent types and swappable model providers. |
 | 1.4.0 | 2026-06-12 | §10: changed the default demo model from hosted Claude to the OpenCode Zen free tier (`opencode/big-pickle`) — zero-key, zero-cost demo; Claude and Ollama remain swappable. Verified end-to-end against the Phase 3 harness. |
 | 1.5.0 | 2026-06-13 | §4: auth is now in scope — replaced the "no logins" exclusion to reflect real, self-hosted authentication (seeded accounts, hashed passwords, server-side sessions, viewer/coordinator roles gating approvals) served behind a Cloudflare Tunnel. Public sign-up and user administration stay out of scope (deferred to 0.5.0). |
+| 1.6.0 | 2026-06-13 | §4: onboarding + administration now in scope (0.5.0) — invite-gated sign-up (50 single-use, hashed, role-bearing keys), a `superadmin` tier + user-administration area, and self-service change-password / delete-account, with a last-superadmin lockout guard. Email verification, password-reset-by-email, MFA, OAuth, and multi-tenant remain excluded. |

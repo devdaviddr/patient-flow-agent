@@ -7,13 +7,14 @@
 // migration are set up before the auth graph is imported. Synthetic `.test`
 // accounts only — the demo passwords guard nothing real.
 
-import { mkdtempSync, readFileSync, rmSync } from "node:fs"
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import Database from "better-sqlite3"
 import { afterAll, beforeAll, describe, expect, it } from "vitest"
 
-const MIGRATION = join(process.cwd(), "drizzle", "0000_great_wrecker.sql")
+const MIGRATIONS_DIR = join(process.cwd(), "drizzle")
+const INVITE_KEYS_FILE = join(process.cwd(), ".invite-keys.txt")
 
 let dbPath: string
 let dbDir: string
@@ -27,10 +28,19 @@ beforeAll(async () => {
   dbDir = mkdtempSync(join(tmpdir(), "pfo-auth-"))
   dbPath = join(dbDir, "auth.db")
 
-  // Apply the checked-in migration to the fresh DB before the auth graph opens it.
-  const sql = readFileSync(MIGRATION, "utf8").replace(/--> statement-breakpoint/g, "")
+  // Apply every checked-in migration in order to the fresh DB before the auth graph
+  // opens it (0000 base schema + 0001 invites/admin columns/superadmin triggers).
+  const migrations = readdirSync(MIGRATIONS_DIR)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
   const setup = new Database(dbPath)
-  setup.exec(sql)
+  for (const file of migrations) {
+    const sql = readFileSync(join(MIGRATIONS_DIR, file), "utf8").replace(
+      /--> statement-breakpoint/g,
+      "",
+    )
+    setup.exec(sql)
+  }
   setup.close()
 
   // Point the auth layer at the temp DB + provide the required secrets, THEN load
@@ -48,6 +58,8 @@ beforeAll(async () => {
 
 afterAll(() => {
   rmSync(dbDir, { recursive: true, force: true })
+  // The seed emits invite keys to a gitignored file in cwd; don't leave it behind.
+  rmSync(INVITE_KEYS_FILE, { force: true })
 })
 
 // Read the raw rows the seed wrote (bypassing the ORM) to inspect storage directly.
@@ -55,17 +67,19 @@ function rawDb(): InstanceType<typeof Database> {
   return new Database(dbPath, { readonly: true })
 }
 
-describe("seed creates both roles (A11)", () => {
-  it("creates a coordinator and a viewer", () => {
+describe("seed creates the demo roles + a superadmin (A11, B-roles)", () => {
+  it("creates a coordinator, a viewer, and a superadmin", () => {
     const db = rawDb()
     const rows = db
       .prepare("SELECT email, role FROM user ORDER BY role")
       .all() as { email: string; role: string }[]
     db.close()
-    expect(rows).toEqual([
-      { email: creds.COORDINATOR_EMAIL, role: "coordinator" },
-      { email: creds.VIEWER_EMAIL, role: "viewer" },
-    ])
+    const byRole = Object.fromEntries(rows.map((r) => [r.role, r.email]))
+    expect(rows).toHaveLength(3)
+    expect(byRole.coordinator).toBe(creds.COORDINATOR_EMAIL)
+    expect(byRole.viewer).toBe(creds.VIEWER_EMAIL)
+    // The superadmin email is bootstrap-only; assert it exists, not its value.
+    expect(byRole.superadmin).toBeTruthy()
   })
 
   it("is idempotent — a re-run creates no duplicates", async () => {
@@ -73,7 +87,29 @@ describe("seed creates both roles (A11)", () => {
     const db = rawDb()
     const { n } = db.prepare("SELECT COUNT(*) AS n FROM user").get() as { n: number }
     db.close()
-    expect(n).toBe(2)
+    expect(n).toBe(3)
+  })
+})
+
+describe("seed mints the invite keys once (B2)", () => {
+  it("creates exactly 50 invite rows, all unclaimed and hashed", () => {
+    const db = rawDb()
+    const rows = db
+      .prepare("SELECT code_hash, role, used_by FROM invite")
+      .all() as { code_hash: string; role: string; used_by: string | null }[]
+    db.close()
+    expect(rows).toHaveLength(50)
+    expect(rows.every((r) => r.used_by === null)).toBe(true)
+    // Stored value is a 64-hex HMAC digest, never a readable key.
+    expect(rows.every((r) => /^[0-9a-f]{64}$/.test(r.code_hash))).toBe(true)
+    expect(rows.every((r) => r.role === "viewer" || r.role === "coordinator")).toBe(true)
+  })
+
+  it("does not regenerate keys on a re-run (idempotent)", () => {
+    const db = rawDb()
+    const { n } = db.prepare("SELECT COUNT(*) AS n FROM invite").get() as { n: number }
+    db.close()
+    expect(n).toBe(50)
   })
 })
 
@@ -85,7 +121,7 @@ describe("passwords are hashed, never plaintext (A1)", () => {
       .all() as { password: string | null; role: string }[]
     db.close()
 
-    expect(accounts.length).toBe(2)
+    expect(accounts.length).toBe(3)
     for (const acc of accounts) {
       expect(acc.password).toBeTruthy()
       // A KDF hash, not the demo plaintext.

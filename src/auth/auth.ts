@@ -8,6 +8,8 @@
 
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { admin } from "better-auth/plugins/admin"
+import { adminAc, userAc } from "better-auth/plugins/admin/access"
 import { nextCookies } from "better-auth/next-js"
 import { db } from "./db"
 import { schema, ROLES } from "./schema"
@@ -39,14 +41,16 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
   emailAndPassword: {
     enabled: true,
-    // Seed-only this release — no public sign-up (onboarding lands in 0.5.0).
+    // Built-in open sign-up stays disabled (decision 2): onboarding is invite-gated
+    // via the custom /api/register route, so signUpEmail returns signup_disabled.
     disableSignUp: true,
     requireEmailVerification: false,
   },
   user: {
     additionalFields: {
       // Carried on the validated session so guards read the role server-side.
-      // input: false — role is seed-assigned, never client-supplied on sign-up.
+      // input: false — role is seed-assigned (or invite-encoded), never client-
+      // supplied on sign-up.
       role: {
         type: [...ROLES],
         required: false,
@@ -77,6 +81,21 @@ export const auth = betterAuth({
       httpOnly: true,
     },
   },
-  // Keep Next.js cookie handling correct for server actions / route handlers.
-  plugins: [nextCookies()],
+  plugins: [
+    // Superadmin user administration (B4): list/search/edit/delete/set-role.
+    // The plugin needs each admin role defined in its access-control config, so we
+    // map our roles onto the built-in permission sets: `superadmin` gets the full
+    // admin grant (adminAc), `coordinator`/`viewer` get none (userAc). New accounts
+    // default to viewer. The endpoints are ALSO independently gated at the route
+    // layer (requireSuperadmin in /api/auth/[...all]) so the plugin is not the sole
+    // authority (decision 7).
+    admin({
+      roles: { superadmin: adminAc, coordinator: userAc, viewer: userAc },
+      adminRoles: ["superadmin"],
+      defaultRole: "viewer",
+    }),
+    // Keep Next.js cookie handling correct for server actions / route handlers.
+    // Must stay last so its cookie hooks wrap the others.
+    nextCookies(),
+  ],
 })

@@ -13,9 +13,8 @@ export interface SessionUser {
   role: Role
 }
 
-// Role hierarchy: viewer(0) < coordinator(1). Guards compare ranks so adding a
-// higher tier later (0.5.0 superadmin) is a one-line change.
-const RANK: Record<Role, number> = { viewer: 0, coordinator: 1 }
+// Role hierarchy: viewer(0) < coordinator(1) < superadmin(2). Guards compare ranks.
+const RANK: Record<Role, number> = { viewer: 0, coordinator: 1, superadmin: 2 }
 
 // Thrown by the require* guards; withPolicy turns it into the response below.
 export class AuthError extends Error {
@@ -52,6 +51,17 @@ export async function requireOperator(req: Request): Promise<SessionUser> {
   const user = await requireAuth(req)
   if (RANK[user.role] < RANK.coordinator) {
     throw new AuthError(403, "Coordinator role required")
+  }
+  return user
+}
+
+// Superadmin only (the administration tier, 0.5.0); throws 403 otherwise. This is
+// the independent assertion gating /api/auth/admin/* so the admin plugin is never
+// the sole authority (B7, decision 7).
+export async function requireSuperadmin(req: Request): Promise<SessionUser> {
+  const user = await requireAuth(req)
+  if (RANK[user.role] < RANK.superadmin) {
+    throw new AuthError(403, "Superadmin role required")
   }
   return user
 }

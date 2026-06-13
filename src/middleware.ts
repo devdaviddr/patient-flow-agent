@@ -8,11 +8,12 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { getSessionCookie } from "better-auth/cookies"
 
-// Routes reachable without a session.
-const PUBLIC_PAGES = ["/login"]
+// Routes reachable without a session: sign-in + invite-gated sign-up.
+const PUBLIC_PAGES = ["/login", "/register"]
 
 function isPublic(pathname: string): boolean {
   if (pathname.startsWith("/api/auth")) return true
+  if (pathname === "/api/register") return true
   return PUBLIC_PAGES.includes(pathname)
 }
 
