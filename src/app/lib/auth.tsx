@@ -9,7 +9,7 @@
 
 import { createContext, useContext, useMemo, type ReactNode } from "react"
 import { createAuthClient } from "better-auth/react"
-import { inferAdditionalFields } from "better-auth/client/plugins"
+import { adminClient, inferAdditionalFields } from "better-auth/client/plugins"
 import { ROLES, type Role } from "@/auth/schema"
 
 // The Better Auth React client. The additional-fields plugin teaches the client
@@ -17,7 +17,12 @@ import { ROLES, type Role } from "@/auth/schema"
 // We pass the field schema explicitly (rather than `<typeof auth>`) to avoid
 // pulling the server instance into the client bundle.
 export const authClient = createAuthClient({
-  plugins: [inferAdditionalFields({ user: { role: { type: "string" } } })],
+  plugins: [
+    inferAdditionalFields({ user: { role: { type: "string" } } }),
+    // Superadmin user administration (list/search/set-role/remove). The server
+    // independently re-checks superadmin on every admin endpoint (decision 7).
+    adminClient(),
+  ],
 })
 
 // The identity the shell consumes. `role` is the authoritative server role;

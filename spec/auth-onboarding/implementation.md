@@ -208,3 +208,24 @@ invitee).
 **Later/never:** email verification, forgot-password-via-email, MFA, passkeys, OAuth/social login,
 multi-tenant orgs, self-service invite generation, persisting the simulator / decision records across
 restart. Desktop only.
+
+## 7. Implementation notes — deviations from the plan (as built)
+
+Three refinements made during implementation, each strengthening a decision rather than changing it:
+
+1. **Register via `internalAdapter`, not the admin plugin's `createUser` (B3).** The admin
+   `create-user` endpoint requires an *admin* caller; an anonymous invitee is not one. Sign-up instead
+   uses the same server-controlled `auth.$context.internalAdapter.createUser` + `linkAccount` path the seed
+   uses, then `redeem` + an explicit `signInEmail`. Claim-then-compensate is unchanged (compensation is
+   `internalAdapter.deleteUser`).
+2. **Last-superadmin invariant as SQLite triggers, not a Better-Auth before-hook (B5, decision 5).**
+   Migration `0001` installs `BEFORE DELETE` / `BEFORE UPDATE OF role` triggers that `RAISE(ABORT)` for the
+   final superadmin. This is the "DB-level guard the plugin cannot bypass" the decision preferred — it holds
+   on the admin path, the self-delete path, and any future path, enforced by the engine. Routes keep a
+   defence-in-depth `isOnlySuperadmin` pre-check for a friendly `409`.
+3. **Admin-plugin role config.** The plugin validates `adminRoles` against its access-control `roles`, so
+   the app roles are mapped onto the built-in permission sets (`superadmin → adminAc`, others → `userAc`)
+   with `defaultRole: "viewer"`. Self-service account deletion uses `internalAdapter.deleteUser` directly
+   (so Better Auth's `deleteUser` endpoint stays disabled — smaller surface).
+
+Release notes (`releases/0.5.0.md`) are deferred to tag time, matching the repo (no `0.4.0.md` yet).

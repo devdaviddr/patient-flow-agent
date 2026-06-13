@@ -21,6 +21,11 @@ export const COORDINATOR_USER: MockUser = {
   name: "Dr. A. Coordinator",
   role: "coordinator",
 }
+export const SUPERADMIN_USER: MockUser = {
+  id: "u-superadmin",
+  name: "S. Administrator",
+  role: "superadmin",
+}
 
 // The current session the mocked `auth.api.getSession` will return. `null` = no
 // session (an unauthenticated request). Tests set this before firing a request.
@@ -42,5 +47,8 @@ export const mockAuth = {
       }
     }),
   },
-  handler: vi.fn(),
+  // The catch-all auth route delegates non-admin paths to auth.handler; a stub that
+  // returns 200 lets the admin-gate probe assert "delegated" (not 401/403) for a
+  // superadmin without standing up the real Better Auth handler.
+  handler: vi.fn(async () => new Response(null, { status: 200 })),
 }

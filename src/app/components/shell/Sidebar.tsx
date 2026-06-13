@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Info, LayoutDashboard, LogOut, Settings } from "lucide-react"
+import { Info, LayoutDashboard, LogOut, Settings, ShieldCheck } from "lucide-react"
 import { useAuth } from "../../lib/auth"
 
 const NAV = [
@@ -11,16 +11,20 @@ const NAV = [
   { href: "/settings", label: "Settings", icon: Settings },
 ]
 
+// Shown only to superadmins (the server gates the admin area regardless).
+const ADMIN_NAV = { href: "/admin", label: "Administration", icon: ShieldCheck }
+
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const pathname = usePathname()
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
+  const nav = user?.role === "superadmin" ? [...NAV, ADMIN_NAV] : NAV
 
   return (
     <aside
       className={`${collapsed ? "w-16" : "w-60"} flex shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-200`}
     >
       <nav className="flex-1 space-y-1 p-2">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {nav.map(({ href, label, icon: Icon }) => {
           const active = pathname === href
           return (
             <Link

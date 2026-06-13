@@ -2,6 +2,7 @@
 // Shapes follow Architecture.md §5 (reasoning outputs + audit).
 
 import type { ISOTime } from "@/sim"
+import type { Role } from "@/auth/schema"
 
 export type InterventionType = "expedite_script" | "request_transport"
 
@@ -38,11 +39,13 @@ export interface ProposedPlan {
 }
 
 // Who approved/rejected an action, snapshotted onto the record (not an FK) so the
-// audit trail survives account deletion in a later release (Architecture.md §5, A8).
+// audit trail survives account deletion (Architecture.md §5, A8). The role mirrors
+// the auth hierarchy (Role, type-only import at the top — no runtime coupling) so a
+// superadmin actor is representable without re-listing the roles here.
 export interface DecisionActor {
   id: string
   name: string
-  role: "viewer" | "coordinator"
+  role: Role
 }
 
 export interface DecisionRecord {

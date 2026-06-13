@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { useAuth } from "../lib/auth"
 import {
   COORDINATOR_EMAIL,
@@ -106,6 +107,13 @@ export default function LoginPage() {
           </div>
           <p className="mb-3 text-xs text-muted">
             Synthetic, demo-only — click to fill the form, then sign in.
+          </p>
+          <p className="mb-3 text-xs text-muted">
+            Have an invite key?{" "}
+            <Link href="/register" className="text-primary hover:underline">
+              Create an account
+            </Link>
+            .
           </p>
           <div className="space-y-1.5">
             {DEMO_ACCOUNTS.map((account) => (

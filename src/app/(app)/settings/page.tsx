@@ -1,14 +1,25 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "../../lib/auth"
 import { Panel } from "../../components/Panel"
 
 export default function SettingsPage() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
+  const router = useRouter()
   const [scenario, setScenario] = useState("normal-weekday")
   const [busy, setBusy] = useState(false)
   const [loaded, setLoaded] = useState<string | null>(null)
+
+  // Self-service account management (spec B6).
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [pwBusy, setPwBusy] = useState(false)
+  const [pwMsg, setPwMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [delBusy, setDelBusy] = useState(false)
+  const [delError, setDelError] = useState<string | null>(null)
 
   const load = async () => {
     setBusy(true)
@@ -21,6 +32,45 @@ export default function SettingsPage() {
       setLoaded(scenario)
     } finally {
       setBusy(false)
+    }
+  }
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPwMsg(null)
+    setPwBusy(true)
+    try {
+      const res = await fetch("/api/account/password", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      if (res.ok) {
+        setPwMsg({ ok: true, text: "Password changed." })
+        setCurrentPassword("")
+        setNewPassword("")
+      } else {
+        setPwMsg({ ok: false, text: "Could not change password. Check your current password." })
+      }
+    } finally {
+      setPwBusy(false)
+    }
+  }
+
+  const deleteAccount = async () => {
+    setDelError(null)
+    setDelBusy(true)
+    try {
+      const res = await fetch("/api/account", { method: "DELETE" })
+      if (res.ok) {
+        await logout()
+        router.replace("/login")
+        return
+      }
+      const body = (await res.json().catch(() => null)) as { error?: string } | null
+      setDelError(body?.error ?? "Could not delete your account.")
+    } finally {
+      setDelBusy(false)
     }
   }
 
@@ -83,6 +133,83 @@ export default function SettingsPage() {
             signed in
           </span>
         </div>
+      </Panel>
+
+      <Panel title="Change password">
+        <form onSubmit={changePassword} className="space-y-3">
+          <div>
+            <label className="mb-1 block text-sm text-muted">Current password</label>
+            <input
+              type="password"
+              autoComplete="current-password"
+              required
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm text-muted">New password (8+ characters)</label>
+            <input
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={8}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+          </div>
+          {pwMsg && (
+            <p role="alert" className={`text-sm ${pwMsg.ok ? "text-clean" : "text-blocked"}`}>
+              {pwMsg.text}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={pwBusy}
+            className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+          >
+            {pwBusy ? "Saving…" : "Change password"}
+          </button>
+        </form>
+      </Panel>
+
+      <Panel title="Delete account">
+        <p className="mb-3 text-sm text-muted">
+          Permanently deletes your account and signs you out. Prior decisions you approved are kept
+          for the audit trail. The last superadmin account cannot be deleted.
+        </p>
+        {delError && (
+          <p role="alert" className="mb-3 text-sm text-blocked">
+            {delError}
+          </p>
+        )}
+        {confirming ? (
+          <div className="flex gap-2">
+            <button
+              onClick={deleteAccount}
+              disabled={delBusy}
+              className="rounded-lg bg-blocked px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {delBusy ? "Deleting…" : "Confirm delete"}
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              disabled={delBusy}
+              className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface-2"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirming(true)}
+            className="rounded-lg border border-blocked/60 px-3 py-1.5 text-sm font-medium text-blocked hover:bg-blocked/10"
+          >
+            Delete my account
+          </button>
+        )}
       </Panel>
     </div>
   )
