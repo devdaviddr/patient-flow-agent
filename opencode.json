@@ -8,6 +8,14 @@
     "expedite_script": "ask",
     "request_transport": "ask",
     "task": "allow",
-    "*": "deny"
+    "bash": "deny",
+    "read": "deny",
+    "write": "deny",
+    "edit": "deny",
+    "patch": "deny",
+    "grep": "deny",
+    "glob": "deny",
+    "list": "deny",
+    "webfetch": "deny"
   }
 }

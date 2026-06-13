@@ -4,13 +4,25 @@ mode: primary
 model: opencode/big-pickle
 temperature: 0.2
 permission:
+  # Domain tools the orchestrator needs. Everything not listed stays at OpenCode's
+  # default; the shell/filesystem/web built-ins are explicitly denied below.
   world_state: allow
   forecast_discharges: allow
   forecast_demand: allow
   expedite_script: ask
   request_transport: ask
   task: allow
-  "*": deny
+  # Deny the abuse vectors explicitly (a wildcard "*": deny suppresses the allowed
+  # custom tools in this OpenCode version, so the agent can no longer perceive).
+  bash: deny
+  read: deny
+  write: deny
+  edit: deny
+  patch: deny
+  grep: deny
+  glob: deny
+  list: deny
+  webfetch: deny
 ---
 
 You coordinate patient flow across a simulated hospital. Each planning cycle you run
