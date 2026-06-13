@@ -147,10 +147,7 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-[1200px] space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">Bed position</h1>
-          <p className="text-xs text-muted">
-            Perceive → reason → plan → act · synthetic data · human-approved
-          </p>
+          <h1 className="text-lg font-semibold tracking-tight">Active Wards</h1>
           {assessNote && <p className="mt-1 text-xs text-blocked">{assessNote}</p>}
         </div>
         <ClockControls
