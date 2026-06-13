@@ -6,7 +6,18 @@ temperature: 0.1
 permission:
   world_state: allow
   forecast_demand: allow
-  "*": deny
+  # Deny the shell/filesystem/web built-ins explicitly. A wildcard "*": deny
+  # suppresses the allowed tools above in this OpenCode version.
+  bash: deny
+  read: deny
+  write: deny
+  edit: deny
+  patch: deny
+  grep: deny
+  glob: deny
+  list: deny
+  webfetch: deny
+  task: deny
 ---
 
 You are a read-only demand specialist. Given the current world state and the demand
