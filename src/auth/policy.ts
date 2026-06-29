@@ -32,6 +32,7 @@ export const ROUTE_POLICY: Record<string, PolicyTier> = {
   "/api/driver/proposals": "authenticated",
   "/api/driver/flags": "authenticated",
   "/api/driver/assessment": "authenticated",
+  "/api/driver/assessment/stream": "authenticated",
   "/api/driver/ask": "authenticated",
   "/api/sim/forecast/demand": "authenticated",
   "/api/sim/forecast/discharges": "authenticated",
