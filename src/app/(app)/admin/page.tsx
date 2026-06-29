@@ -24,10 +24,27 @@ interface InviteOverview {
   used: number
 }
 
+interface AuthEvent {
+  id: number
+  at: string
+  type: string
+  actorName: string | null
+  targetId: string | null
+  detail: string | null
+}
+
+const EVENT_LABEL: Record<string, string> = {
+  sign_in: "Signed in",
+  role_change: "Role changed",
+  account_deleted: "Account deleted",
+  admin_action: "Admin action",
+}
+
 export default function AdminPage() {
   const { user } = useAuth()
   const [users, setUsers] = useState<AdminUser[] | null>(null)
   const [invites, setInvites] = useState<InviteOverview | null>(null)
+  const [events, setEvents] = useState<AuthEvent[]>([])
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
@@ -44,6 +61,8 @@ export default function AdminPage() {
     setUsers(data.users)
     const inv = await fetch("/api/admin/invites")
     if (inv.ok) setInvites((await inv.json()) as InviteOverview)
+    const aud = await fetch("/api/admin/audit")
+    if (aud.ok) setEvents((await aud.json()) as AuthEvent[])
   }, [])
 
   useEffect(() => {
@@ -165,6 +184,25 @@ export default function AdminPage() {
               })}
             </tbody>
           </table>
+        )}
+      </Panel>
+
+      <Panel title="Audit log">
+        {events.length === 0 ? (
+          <p className="text-sm text-muted">No auth events recorded yet.</p>
+        ) : (
+          <ul className="space-y-1.5 text-sm">
+            {events.map((e) => (
+              <li key={e.id} className="flex flex-wrap items-baseline gap-x-2 border-t border-border pt-1.5 first:border-0 first:pt-0">
+                <span className="font-medium">{EVENT_LABEL[e.type] ?? e.type}</span>
+                {e.actorName && <span className="text-muted">by {e.actorName}</span>}
+                {e.detail && <span className="text-muted">· {e.detail}</span>}
+                <span className="ml-auto text-xs tabular-nums text-muted">
+                  {new Date(e.at).toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
       </Panel>
     </div>
