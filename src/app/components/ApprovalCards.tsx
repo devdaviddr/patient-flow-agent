@@ -50,12 +50,18 @@ export function ApprovalCards({
               {patientName(iv.targetPatientId)} ({patientUr(iv.targetPatientId)})
             </div>
             <div className="mt-0.5 text-xs text-muted">
-              addresses gap: {iv.addressesGap} · impact {iv.impactScore.toFixed(2)}
+              addresses gap: {iv.addressesGap}
+              {iv.estimatedImpact != null && (
+                <> · frees ≈{iv.estimatedImpact.toFixed(1)}h of bed-time</>
+              )}{" "}
+              · agent confidence {iv.impactScore.toFixed(2)}
             </div>
+            {/* Bar reflects the deterministic estimate (bed-hours over the 8h horizon),
+                not the model's bare score, so the ranking it implies is defensible. */}
             <div className="my-1.5 h-1 overflow-hidden rounded bg-border">
               <span
                 className="block h-full bg-clean"
-                style={{ width: `${Math.round(iv.impactScore * 100)}%` }}
+                style={{ width: `${Math.round(((iv.estimatedImpact ?? 0) / 8) * 100)}%` }}
               />
             </div>
             {ACTION_EXPLANATION[iv.type] && (

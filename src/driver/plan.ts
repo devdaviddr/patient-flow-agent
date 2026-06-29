@@ -47,12 +47,19 @@ export function extractJson(text: string): string {
   throw new Error("no JSON object found in plan output")
 }
 
+// The model's impactScore is a hint; clamp it to [0,1] (non-finite → 0) so a stray
+// Infinity/NaN can't blow up the bar or the ranking (#74 item 2).
+function clampScore(x: number): number {
+  return Number.isFinite(x) ? Math.min(1, Math.max(0, x)) : 0
+}
+
 export function parsePlan(text: string): ProposedPlan {
   const parsed = PlanInputSchema.parse(JSON.parse(extractJson(text)))
   return {
     gaps: parsed.gaps,
     interventions: parsed.interventions.map((iv, i) => ({
       ...iv,
+      impactScore: clampScore(iv.impactScore),
       id: `iv-${i + 1}`,
       status: "proposed" as const,
     })),
