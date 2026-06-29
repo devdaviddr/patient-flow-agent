@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏥 Patient Flow Orchestrator
+# 🏥 AI Patient Flow Orchestrator
 
 **An AI agent that watches a simulated hospital, predicts where beds will run short, explains why, and proposes ranked fixes — with a human approving every action.**
 

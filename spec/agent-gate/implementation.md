@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Spec** | `spec/agent-gate/spec.md` |
-| **Issue** | [#42](https://github.com/devdaviddr/patient-flow-agent/issues/42) · P0 / CRITICAL |
+| **Issue** | [#42](https://github.com/devdaviddr/ai-patient-flow-orchestrator/issues/42) · P0 / CRITICAL |
 | **Status** | 📝 SDD step 2 (Design) — no code until the plan PR is approved |
 | **Surface** | One function + one constant in `src/auth/session.ts`; one test block in `tests/auth-policy.test.ts`. No new deps, no schema/migration, no API surface change. |
 

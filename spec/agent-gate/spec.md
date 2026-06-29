@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Feature** | Restrict the OpenCode agent's SIM **service token** to **read-only** simulator routes, so the only path to a simulator state change is the driver's **item-by-item human-approval gate**. Closes the bypass where the agent could mutate state server-to-server without an approval. |
-| **Issue** | [#42](https://github.com/devdaviddr/patient-flow-agent/issues/42) · **P0 / CRITICAL** · milestone *Security & Auth Hardening* |
+| **Issue** | [#42](https://github.com/devdaviddr/ai-patient-flow-orchestrator/issues/42) · **P0 / CRITICAL** · milestone *Security & Auth Hardening* |
 | **Target release** | `0.5.1` (security patch) |
 | **Status** | 📝 SDD step 1 (Specify) |
 | **Branch** | `fix/agent-gate` (plan) → `fix/agent-gate-impl` (code) |

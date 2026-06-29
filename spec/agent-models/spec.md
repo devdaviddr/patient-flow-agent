@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Feature** | Replace the hardcoded model preset list with the providers/models OpenCode *actually has configured*, queried live. Wire the provider credentials (Zen, Anthropic, **OpenRouter**, Ollama) so configuring a key makes that provider's models selectable. |
-| **Issue** | [#75](https://github.com/devdaviddr/patient-flow-agent/issues/75) · P2 · milestone *Agent Credibility & Correctness* |
+| **Issue** | [#75](https://github.com/devdaviddr/ai-patient-flow-orchestrator/issues/75) · P2 · milestone *Agent Credibility & Correctness* |
 | **Target release** | `0.6.x` (agent reasoning/config) |
 | **Status** | 📝 SDD step 1 (Specify) |
 | **Branch** | `feat/agent-models` (plan) → `feat/agent-models-impl` (code) |

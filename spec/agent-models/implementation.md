@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Spec** | `spec/agent-models/spec.md` |
-| **Issue** | [#75](https://github.com/devdaviddr/patient-flow-agent/issues/75) · P2 |
+| **Issue** | [#75](https://github.com/devdaviddr/ai-patient-flow-orchestrator/issues/75) · P2 |
 | **Status** | 📝 SDD step 2 (Design) — code after the plan PR is approved |
 | **Surface** | `adapter.ts` (+1 fn) · new `GET /api/agent/models` route + policy entry · AI-config `PUT` validation · Settings panel picker · compose `opencode` env + `.env.example`. No schema/migration. |
 

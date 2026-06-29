@@ -1,5 +1,5 @@
 {
-  "name": "patient-flow-agent",
+  "name": "ai-patient-flow-orchestrator",
   "version": "0.1.0",
   "private": true,
   "scripts": {
