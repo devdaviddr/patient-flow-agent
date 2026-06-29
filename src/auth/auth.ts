@@ -13,6 +13,7 @@ import { adminAc, userAc } from "better-auth/plugins/admin/access"
 import { nextCookies } from "better-auth/next-js"
 import { db } from "./db"
 import { schema, ROLES } from "./schema"
+import { recordAuthEvent } from "./audit"
 
 // Fail loud and early on missing secrets rather than silently running insecure.
 function requireEnv(name: string): string {
@@ -69,6 +70,16 @@ export const auth = betterAuth({
     storeSessionInDatabase: true,
     expiresIn: SESSION_EXPIRES_SECONDS,
     updateAge: SESSION_UPDATE_AGE_SECONDS,
+  },
+  databaseHooks: {
+    // Every new session is a sign-in — record it for the audit trail (#28).
+    session: {
+      create: {
+        after: async (created) => {
+          recordAuthEvent({ type: "sign_in", actorId: created.userId })
+        },
+      },
+    },
   },
   rateLimit: {
     enabled: true,

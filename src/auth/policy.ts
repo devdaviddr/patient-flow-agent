@@ -41,6 +41,7 @@ export const ROUTE_POLICY: Record<string, PolicyTier> = {
   // Superadmin: the standalone admin surface (invite overview). The admin-plugin
   // CRUD lives under /api/auth/admin/* and is gated in policyFor + the catch-all.
   "/api/admin/invites": "superadmin",
+  "/api/admin/audit": "superadmin",
 
   // Public: invite-gated sign-up. Better Auth's own endpoints (sign-in/out/session)
   // are public via the /api/auth prefix special-case in policyFor.

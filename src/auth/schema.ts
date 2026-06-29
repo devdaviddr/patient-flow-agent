@@ -102,6 +102,20 @@ export const decisionRecord = sqliteTable("decision_record", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 })
 
-// Better Auth's adapter only needs the auth tables; decisionRecord is queried
-// directly by the driver's store, so it stays out of this map.
+// Auth audit trail (#28): sign-in, role change, account deletion, and other admin
+// actions, with the acting principal + target. Synthetic identities only (S13);
+// queried directly by the audit module, so it stays out of the Better Auth map.
+export const authEvent = sqliteTable("auth_event", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  at: text("at").notNull(),
+  type: text("type").notNull(),
+  actorId: text("actor_id"),
+  actorName: text("actor_name"),
+  targetId: text("target_id"),
+  detail: text("detail"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+})
+
+// Better Auth's adapter only needs the auth tables; decisionRecord + authEvent are
+// queried directly, so they stay out of this map.
 export const schema = { user, session, account, verification, invite }

@@ -5,6 +5,7 @@ import { withPolicy } from "@/auth/withPolicy"
 import type { SessionUser } from "@/auth/session"
 import { checkSameOrigin } from "@/auth/csrf"
 import { isLastSuperadminError, isOnlySuperadmin } from "@/auth/superadmin"
+import { recordAuthEvent } from "@/auth/audit"
 
 export const dynamic = "force-dynamic"
 
@@ -33,6 +34,13 @@ export const DELETE = withPolicy(
     const ctx = await auth.$context
     try {
       await ctx.internalAdapter.deleteUser(user.id)
+      recordAuthEvent({
+        type: "account_deleted",
+        actorId: user.id,
+        actorName: user.name,
+        targetId: user.id,
+        detail: "self-service delete",
+      })
     } catch (err) {
       if (isLastSuperadminError(err)) {
         return NextResponse.json(
