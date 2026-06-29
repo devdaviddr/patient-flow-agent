@@ -43,6 +43,8 @@ vi.mock("@/driver/adapter", () => {
 })
 
 import { DEFAULT_TIER, ROUTE_POLICY, policyFor, type PolicyTier } from "@/auth/policy"
+import { SIM_SERVICE_PRINCIPAL } from "@/auth/session"
+import { getSimulator } from "@/sim"
 
 const API_ROOT = join(process.cwd(), "src", "app", "api")
 
@@ -216,10 +218,12 @@ describe("admin-plugin endpoints are independently gated to superadmin (B7)", ()
   })
 })
 
-// Fix A: the OpenCode agent reaches the auth-gated sim API server-to-server with a
-// shared service token (it has no browser session). The token is scoped to
-// /api/sim/* only, so it admits the agent there but is worthless on driver/admin.
-describe("agent → sim service token (scoped to /api/sim/*)", () => {
+// Fix A + #42: the OpenCode agent reaches the auth-gated sim API server-to-server
+// with a shared service token (it has no browser session). The token is a credential
+// ONLY on the agent's read-only sim routes — never the mutating ones (/actions/*,
+// /step, /scenario) — so the human-approval gate (Driver.approve()) is the SOLE path
+// to a bed change (R7), and the token stays worthless off the sim path entirely.
+describe("agent → sim service token (read-only sim routes only)", () => {
   const TOKEN = "test-sim-service-token-deadbeef"
   const original = process.env.SIM_SERVICE_TOKEN
 
@@ -254,18 +258,51 @@ describe("agent → sim service token (scoped to /api/sim/*)", () => {
     }
   }
 
-  it("a valid token admits the agent to a sim route with no session (not 401/403)", async () => {
-    const res = await fire("/api/sim/state", TOKEN)
+  // G1 — the three read endpoints the agent's perceive + forecast tools call are admitted.
+  const READ_ROUTES = [
+    "/api/sim/state",
+    "/api/sim/forecast/discharges",
+    "/api/sim/forecast/demand",
+  ]
+  it.each(READ_ROUTES)("admits the agent to read route %s (not 401/403)", async (path) => {
+    const res = await fire(path, TOKEN)
     expect(res.status).not.toBe(401)
     expect(res.status).not.toBe(403)
   })
+
   it("a wrong token is refused 401", async () => {
     expect((await fire("/api/sim/state", "wrong-token")).status).toBe(401)
   })
   it("no token is refused 401", async () => {
     expect((await fire("/api/sim/state", null)).status).toBe(401)
   })
+
+  // G2 — the token is NOT a credential on the mutating sim routes: the only writer is
+  // Driver.approve()'s human gate. Each is refused with the valid token + no session.
+  const MUTATING_ROUTES = [
+    "/api/sim/actions/expedite_script",
+    "/api/sim/actions/request_transport",
+    "/api/sim/step",
+    "/api/sim/scenario",
+  ]
+  it.each(MUTATING_ROUTES)("refuses the service token on mutating route %s (401)", async (path) => {
+    expect((await fire(path, TOKEN)).status).toBe(401)
+  })
+
+  it("a refused action leaves sim state unchanged", async () => {
+    const before = JSON.stringify(getSimulator().getState())
+    await fire("/api/sim/actions/expedite_script", TOKEN)
+    expect(JSON.stringify(getSimulator().getState())).toBe(before)
+  })
+
+  // G3 — still worthless off the sim path entirely.
   it("the token is worthless off the sim path — driver stays 401", async () => {
     expect((await fire("/api/driver/approve", TOKEN)).status).toBe(401)
+  })
+
+  // G4 — least privilege: the principal is viewer, never operator. A bump back to
+  // `coordinator` (which would re-open the gate) trips here. See spec/agent-gate/.
+  it("the service principal is least-privileged (viewer)", () => {
+    expect(SIM_SERVICE_PRINCIPAL.role).toBe("viewer")
   })
 })
