@@ -35,6 +35,23 @@ describe("demand forecast (C2)", () => {
     expect(f.expectedAdmissions).toBeGreaterThanOrEqual(0)
     expect(f.rationale.length).toBeGreaterThan(0)
   })
+
+  it("apportions per ward by bed share, not a hospital-wide number (#50)", () => {
+    const state = new Simulator("flu-surge").getState()
+    const a = forecastDemand(state, "4A", 8)
+    const b = forecastDemand(state, "4B", 8)
+    // Two equal-sized wards → equal shares.
+    expect(a.expectedAdmissions).toBe(b.expectedAdmissions)
+    // The per-ward figure is a share, strictly below the hospital-wide inflow.
+    const hospitalWide = state.edQueue.length + Math.round(1.5 * 8)
+    expect(hospitalWide).toBeGreaterThan(0)
+    expect(a.expectedAdmissions).toBeLessThan(hospitalWide)
+  })
+
+  it("returns 0 for an unknown ward rather than the hospital-wide number (#50)", () => {
+    const state = new Simulator("normal-weekday").getState()
+    expect(forecastDemand(state, "ZZ", 8).expectedAdmissions).toBe(0)
+  })
 })
 
 function findBlocked(sim: Simulator, blocker: BlockerType) {
