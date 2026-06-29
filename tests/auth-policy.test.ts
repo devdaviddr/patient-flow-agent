@@ -107,9 +107,10 @@ async function fireRoute(importPath: string, pathname: string): Promise<Response
 }
 
 describe("route discovery sanity", () => {
-  it("finds the 22 on-disk api routes", () => {
-    // 21 app routes + the Better Auth catch-all handler.
-    expect(ROUTES.length).toBe(22)
+  it("finds the 24 on-disk api routes", () => {
+    // 23 app routes (+2 action routes for allied_health/placement, #35) + the
+    // Better Auth catch-all handler.
+    expect(ROUTES.length).toBe(24)
   })
 })
 
@@ -282,6 +283,8 @@ describe("agent → sim service token (read-only sim routes only)", () => {
   const MUTATING_ROUTES = [
     "/api/sim/actions/expedite_script",
     "/api/sim/actions/request_transport",
+    "/api/sim/actions/page_allied_health",
+    "/api/sim/actions/request_placement",
     "/api/sim/step",
     "/api/sim/scenario",
   ]

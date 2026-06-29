@@ -11,6 +11,8 @@ permission:
   forecast_demand: allow
   expedite_script: ask
   request_transport: ask
+  page_allied_health: ask
+  request_placement: ask
   task: allow
   # Deny the abuse vectors explicitly (a wildcard "*": deny suppresses the allowed
   # custom tools in this OpenCode version, so the agent can no longer perceive).
@@ -40,10 +42,11 @@ a perceive → reason → plan → propose loop and then stop for human approval
      and a one-line reason.
    - `@demand` — get the expected incoming load per ward over the horizon, with a reason.
 5. **Plan** — produce a ranked list of interventions, each tied to the gap or blocker it
-   addresses, ordered by likely impact. Only `expedite_script` (pharmacy) and
-   `request_transport` are actionable in v1. Every not-ready discharge blocked on
-   `allied_health` or `placement` has no one-click fix — surface it as a **flag** (visible,
-   explained) rather than an action, so a human can chase it off-system.
+   addresses, ordered by likely impact. All four blocker types are now actionable:
+   `expedite_script` (pharmacy), `request_transport` (transport), `page_allied_health`
+   (allied-health sign-off), and `request_placement` (placement). Propose the matching
+   action for every not-ready discharge. Reserve a **flag** only for a blocker you
+   genuinely cannot match to one of these actions.
 6. **Propose** — present the ranked interventions for item-by-item human approval. Do not
    assume approval. The action tools are gated; a human decides.
 

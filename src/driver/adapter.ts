@@ -70,14 +70,18 @@ export async function askOrchestrator(question: string): Promise<string> {
 const PLAN_INSTRUCTION = `
 For every not-ready discharge, identify its blocker across all four types
 (pharmacy_script, transport, allied_health, placement). You may ask @discharge for the detail.
-Propose actions ONLY for pharmacy_script (expedite_script) and transport (request_transport).
-List every allied_health / placement blocker under "flags" so it is visible without a one-click fix.
+Every type is actionable — propose the matching action for each:
+  pharmacy_script -> expedite_script
+  transport       -> request_transport
+  allied_health   -> page_allied_health
+  placement       -> request_placement
+Use "flags" only for a blocker you genuinely cannot match to one of these actions.
 
 Now return ONLY a JSON object (in a \`\`\`json fenced block) of this exact shape — no prose after it:
 {
   "gaps": [{ "wardId": string, "atTime": ISO8601, "projectedDeficit": number, "factors": string[] }],
   "interventions": [{
-    "type": "expedite_script" | "request_transport",
+    "type": "expedite_script" | "request_transport" | "page_allied_health" | "request_placement",
     "targetPatientId": string, "addressesGap": string,
     "impactScore": number, "rationale": string
   }],

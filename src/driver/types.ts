@@ -4,7 +4,11 @@
 import type { ISOTime } from "@/sim"
 import type { Role } from "@/auth/schema"
 
-export type InterventionType = "expedite_script" | "request_transport"
+export type InterventionType =
+  | "expedite_script"
+  | "request_transport"
+  | "page_allied_health"
+  | "request_placement"
 
 export interface CapacityGap {
   wardId: string

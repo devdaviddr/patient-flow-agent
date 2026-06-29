@@ -7,6 +7,8 @@
     "forecast_demand": "allow",
     "expedite_script": "ask",
     "request_transport": "ask",
+    "page_allied_health": "ask",
+    "request_placement": "ask",
     "task": "allow",
     "bash": "deny",
     "read": "deny",

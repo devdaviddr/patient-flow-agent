@@ -2,7 +2,7 @@
 // human APPROVES/REJECTS item-by-item; only then does the driver execute, in-process
 // via the simulator. The gate lives here, never in the harness `ask`.
 
-import { getSimulator, Simulator, type ActionResult, type SimEvent } from "@/sim"
+import { getSimulator, Simulator, type ActionResult, type BlockerType, type SimEvent } from "@/sim"
 import { DecisionLog } from "./records"
 import type {
   Assessment,
@@ -13,9 +13,11 @@ import type {
   ProposedPlan,
 } from "./types"
 
-const BLOCKER_FOR: Record<InterventionType, "pharmacy_script" | "transport"> = {
+const BLOCKER_FOR: Record<InterventionType, BlockerType> = {
   expedite_script: "pharmacy_script",
   request_transport: "transport",
+  page_allied_health: "allied_health",
+  request_placement: "placement",
 }
 
 const TICK_PROMPT =
