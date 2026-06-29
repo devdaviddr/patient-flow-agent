@@ -34,6 +34,12 @@ const CLIENT_IP_HEADER = "cf-connecting-ip"
 const SIGN_IN_WINDOW_SECONDS = 60
 const SIGN_IN_MAX_ATTEMPTS = 10
 
+// Explicit session lifetime (was Better Auth's default). Sized for a demo app: long
+// enough a reviewer isn't re-prompted mid-session, short enough a stale cookie
+// expires. Refreshed (sliding) when used within a day of expiry.
+const SESSION_EXPIRES_SECONDS = 60 * 60 * 24 * 7 // 7 days
+const SESSION_UPDATE_AGE_SECONDS = 60 * 60 * 24 // 1 day
+
 export const auth = betterAuth({
   appName: "patient-flow-orchestrator",
   secret: BETTER_AUTH_SECRET,
@@ -61,6 +67,8 @@ export const auth = betterAuth({
   },
   session: {
     storeSessionInDatabase: true,
+    expiresIn: SESSION_EXPIRES_SECONDS,
+    updateAge: SESSION_UPDATE_AGE_SECONDS,
   },
   rateLimit: {
     enabled: true,
