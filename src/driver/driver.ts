@@ -5,6 +5,7 @@
 import { getSimulator, Simulator, type ActionResult, type SimEvent } from "@/sim"
 import { DecisionLog } from "./records"
 import { BLOCKER_FOR, groundInterventions } from "./grounding"
+import { rankByImpact } from "./ranking"
 import type { RecordStore } from "./record-store"
 import type { Assessment, DecisionActor, Flag, Intervention, ProposedPlan } from "./types"
 
@@ -46,7 +47,9 @@ export class Driver {
     // exists and is blocked on the matching type can act, so surface only those. The
     // rest are dropped (and recorded) instead of silently no-opping on approval (#74).
     const { grounded, dropped } = groundInterventions(plan.interventions, state)
-    this.current = grounded.map((iv) => ({ ...iv }))
+    // Rank the grounded set by a deterministic bed-hours estimate, not the model's
+    // bare impactScore — so the order is defensible (#74 item 2).
+    this.current = rankByImpact(grounded, state)
     this.currentFlags = plan.flags ?? []
     for (const gap of plan.gaps) {
       this.log.add({

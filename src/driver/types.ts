@@ -22,9 +22,11 @@ export interface Intervention {
   type: InterventionType
   targetPatientId: string
   addressesGap: string
-  impactScore: number
+  impactScore: number // the model's 0..1 hint (clamped on parse)
   rationale: string
   status: "proposed" | "approved" | "rejected" | "executed"
+  // Deterministic bed-hours-freed estimate the driver computes for ranking (#74 item 2).
+  estimatedImpact?: number
 }
 
 // A not-ready discharge blocked on a NON-actionable type (no v1 one-click fix).

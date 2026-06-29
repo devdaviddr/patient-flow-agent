@@ -71,6 +71,19 @@ describe("plan parsing (D2)", () => {
     expect(() => parsePlan("no json here")).toThrow()
   })
 
+  it("clamps a stray impactScore to [0,1] (#74 item 2)", () => {
+    const text =
+      "```json\n" +
+      JSON.stringify({
+        gaps: [],
+        interventions: [
+          { type: "expedite_script", targetPatientId: "p-1", addressesGap: "4A", impactScore: 99, rationale: "x" },
+        ],
+      }) +
+      "\n```"
+    expect(parsePlan(text).interventions[0].impactScore).toBe(1)
+  })
+
   it("flags are optional — a plan without them parses to []", () => {
     const text = "```json\n" + JSON.stringify({ gaps: [], interventions: [] }) + "\n```"
     expect(parsePlan(text).flags).toEqual([])
@@ -187,6 +200,31 @@ describe("plan grounding (#74 item 1)", () => {
     const planRec = driver.records().find((r) => r.type === "plan")!
     expect(planRec.rationale).toContain("dropped 2 ungrounded")
     expect((planRec.payload as { dropped: unknown[] }).dropped).toHaveLength(2)
+  })
+
+  it("surfaces grounded proposals ranked by the deterministic estimate (#74 item 2)", async () => {
+    const sim = new Simulator("normal-weekday")
+    // Two grounded pharmacy_script patients; the driver should order them by estimate.
+    const ph = sim.getState().patients.filter((p) => p.blocker === "pharmacy_script")
+    expect(ph.length).toBeGreaterThanOrEqual(2)
+    const plan: ProposedPlan = {
+      gaps: [],
+      interventions: ph.slice(0, 2).map((p, i) => ({
+        id: `iv-${i + 1}`,
+        type: "expedite_script" as const,
+        targetPatientId: p.id,
+        addressesGap: p.wardId,
+        impactScore: 0.5,
+        rationale: "ok",
+        status: "proposed" as const,
+      })),
+      flags: [],
+    }
+    const driver = driverWith(plan, sim)
+    await driver.plan()
+    const proposals = driver.proposals()
+    expect(proposals.every((p) => typeof p.estimatedImpact === "number")).toBe(true)
+    expect(proposals[0].estimatedImpact!).toBeGreaterThanOrEqual(proposals[1].estimatedImpact!)
   })
 })
 
