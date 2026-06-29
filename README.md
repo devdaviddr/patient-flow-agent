@@ -101,7 +101,9 @@ work with just `npm run dev`; **Assess** and **Ask** additionally need `opencode
 | normal-weekday | **9.0** with · 14.5 without | **2** with · 1 without |
 | flu-surge | **44.5** with · 84.5 without | **2** with · 1 without |
 
-In both scenarios the agent's interventions yield **fewer access-block hours and more headroom** — the project's central claim (S11). See [`docs/SUCCESS_CRITERIA.md`](./docs/SUCCESS_CRITERIA.md) for the full S1–S13 checklist and where each is proven.
+In both scenarios the agent's interventions yield **fewer access-block hours and more headroom** — the project's central claim (S11). A **real-agent** eval mode drives the actual LLM over N trials and confirms the same direction: `make eval` → `npm run eval -- --mode agent`.
+
+📄 **[Read the one-page case study](./docs/CASE_STUDY.md)** — the problem, the methodology, the numbers, and why the design is safe to pilot. See [`docs/SUCCESS_CRITERIA.md`](./docs/SUCCESS_CRITERIA.md) for the full S1–S13 checklist and where each is proven.
 
 ## Project structure
 
