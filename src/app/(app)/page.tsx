@@ -142,9 +142,55 @@ export default function DashboardPage() {
     }
   }
 
-  // Kick off an assessment and poll it to completion. try/finally guarantees the
-  // spinner always clears — a transport/JSON throw used to leave the button stuck
-  // on "Assessing…" forever (#43). getJSON throws on a non-2xx poll (#44).
+  const noteIfError = (a: Assessment | null) => {
+    if (a?.status === "error") setAssessNote(`Assess failed: ${a.error} (is opencode serve running?)`)
+  }
+
+  // Fallback when SSE is unavailable: poll the assessment to completion (#34/#43).
+  const pollAssessment = async (): Promise<void> => {
+    for (;;) {
+      const a = await getJSON<Assessment | null>("/api/driver/assessment")
+      setAssessment(a)
+      if (!a || a.status !== "running") {
+        noteIfError(a)
+        return
+      }
+      await new Promise((r) => setTimeout(r, 1200))
+    }
+  }
+
+  // Stream the live assessment via SSE — one connection, server-pushed (#34). Falls
+  // back to polling if EventSource can't connect.
+  const streamAssessment = (): Promise<void> =>
+    new Promise<void>((resolve) => {
+      let settled = false
+      let es: EventSource | null = null
+      const finish = (fallback?: Promise<void>) => {
+        if (settled) return
+        settled = true
+        es?.close()
+        resolve(fallback ?? Promise.resolve())
+      }
+      try {
+        es = new EventSource("/api/driver/assessment/stream")
+      } catch {
+        finish(pollAssessment())
+        return
+      }
+      es.onmessage = (ev) => {
+        const a = JSON.parse(ev.data) as Assessment | null
+        setAssessment(a)
+        if (!a || a.status !== "running") {
+          noteIfError(a)
+          finish()
+        }
+      }
+      es.onerror = () => finish(pollAssessment())
+    })
+
+  // Kick off an assessment, then stream it to completion. try/finally guarantees the
+  // spinner always clears — a transport/JSON throw used to leave the button stuck on
+  // "Assessing…" forever (#43).
   const assess = async () => {
     setAssessing(true)
     setAssessNote("")
@@ -153,17 +199,7 @@ export default function DashboardPage() {
     try {
       const kickoff = await fetch("/api/driver/assess", { method: "POST" })
       if (!kickoff.ok) throw new ApiError(await errorMessage(kickoff))
-      for (;;) {
-        const a = await getJSON<Assessment | null>("/api/driver/assessment")
-        setAssessment(a)
-        if (!a || a.status !== "running") {
-          if (a?.status === "error") {
-            setAssessNote(`Assess failed: ${a.error} (is opencode serve running?)`)
-          }
-          break
-        }
-        await new Promise((r) => setTimeout(r, 1200))
-      }
+      await streamAssessment()
       await refresh()
     } catch (e) {
       setAssessNote(`Assess failed: ${msg(e)}`)

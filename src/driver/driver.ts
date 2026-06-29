@@ -87,6 +87,18 @@ export class Driver {
       : null
   }
 
+  // Server-push for the live assessment (#34): listeners are notified on every log
+  // line and status change, so an SSE endpoint can stream progress instead of the
+  // client polling. Returns an unsubscribe.
+  private readonly assessmentListeners = new Set<() => void>()
+  subscribeAssessment(listener: () => void): () => void {
+    this.assessmentListeners.add(listener)
+    return () => this.assessmentListeners.delete(listener)
+  }
+  private notifyAssessment(): void {
+    for (const listener of this.assessmentListeners) listener()
+  }
+
   /**
    * Kick off an assessment in the BACKGROUND, capturing the agent's live activity.
    * Returns immediately; poll assessment() for progress.
@@ -99,7 +111,10 @@ export class Driver {
       log: [],
     }
     this.assessmentState = state
-    const onLog = (text: string) => state.log.push({ at: new Date().toISOString(), text })
+    const onLog = (text: string) => {
+      state.log.push({ at: new Date().toISOString(), text })
+      this.notifyAssessment()
+    }
 
     void (async () => {
       try {
@@ -113,12 +128,14 @@ export class Driver {
         state.interventions = plan.interventions.length
         state.flags = flagged
         state.finishedAt = new Date().toISOString()
+        this.notifyAssessment()
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e)
         onLog(`Error: ${msg}`)
         state.status = "error"
         state.error = msg
         state.finishedAt = new Date().toISOString()
+        this.notifyAssessment()
       }
     })()
 
