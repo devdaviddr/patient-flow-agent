@@ -17,8 +17,11 @@ export default tool({
       })
       if (!r.ok) return JSON.stringify({ error: `simulator returned ${r.status}` })
       return await r.text()
-    } catch {
-      return JSON.stringify({ error: `simulator unreachable at ${process.env.SIM_URL}` })
+    } catch (e) {
+      // Surface the real cause (fail loud) rather than collapsing every failure to
+      // a generic "unreachable" the agent can't act on.
+      const detail = e instanceof Error ? e.message : String(e)
+      return JSON.stringify({ error: `simulator unreachable at ${process.env.SIM_URL}: ${detail}` })
     }
   },
 })
