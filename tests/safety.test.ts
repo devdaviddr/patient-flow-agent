@@ -6,12 +6,26 @@
 // everything we author (tools, prompts) plus the deterministic outputs (state,
 // forecasts, rationales).
 
-import { readFileSync } from "node:fs"
+import { readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { Simulator, forecastDischarges, forecastDemand } from "@/sim"
 
 const ROOT = process.cwd()
+
+// Collect every authored file under a dir with one of `exts`, skipping node_modules.
+// Globbing (vs a hand-list) means a NEW tool/agent is covered automatically — the
+// previous static list could silently miss one (#52).
+function walk(relDir: string, exts: string[]): string[] {
+  const out: string[] = []
+  for (const entry of readdirSync(join(ROOT, relDir), { withFileTypes: true })) {
+    if (entry.name === "node_modules") continue
+    const rel = join(relDir, entry.name)
+    if (entry.isDirectory()) out.push(...walk(rel, exts))
+    else if (exts.some((e) => entry.name.endsWith(e))) out.push(rel)
+  }
+  return out
+}
 
 // Whole-word, case-insensitive. Department/logistics words (pharmacy, transport,
 // script, placement, allied-health) are NOT clinical and stay allowed.
@@ -28,15 +42,18 @@ const DENYLIST = [
   "drug",
 ]
 
-const AUTHORED_FILES = [
-  ".opencode/tools/world_state.ts",
-  ".opencode/tools/forecast_discharges.ts",
-  ".opencode/tools/forecast_demand.ts",
-  ".opencode/tools/expedite_script.ts",
-  ".opencode/tools/request_transport.ts",
-  ".opencode/agents/orchestrator.md",
-  ".opencode/agents/discharge.md",
-  ".opencode/agents/demand.md",
+// Everything the agent harness authors — globbed so a new tool/agent is scanned
+// automatically (the gap in the old hand-list).
+const OPENCODE_AUTHORED = walk(".opencode", [".ts", ".md"])
+
+// src files that author human-readable strings the system emits or renders. Curated
+// (not globbed) because most of src/ is logic, not authored copy — but this now also
+// covers the sim/driver string templates the model-free outputs are built from (#52).
+const SRC_AUTHORED = [
+  "src/sim/forecast.ts", // forecast rationale templates
+  "src/sim/patient.ts", // synthetic name pool
+  "src/sim/scenarios.ts", // ward names
+  "src/driver/plan.ts", // builds/parses intervention rationale + flag reason
   // 0.4.0 auth strings: seed display titles + demo credentials + login UI copy.
   // Auth records carry staff identity only — never clinical content (S13).
   "src/auth/seed.ts",
@@ -48,6 +65,8 @@ const AUTHORED_FILES = [
   "src/app/(app)/admin/page.tsx",
   "src/app/(app)/settings/page.tsx",
 ]
+
+const AUTHORED_FILES = [...OPENCODE_AUTHORED, ...SRC_AUTHORED]
 
 function offendingTerms(text: string): string[] {
   return DENYLIST.filter((term) => new RegExp(`\\b${term}\\b`, "i").test(text))

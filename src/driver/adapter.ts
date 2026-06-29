@@ -4,7 +4,14 @@
 
 import { createOpencodeClient, type OpencodeClient } from "@opencode-ai/sdk"
 import { parsePlan } from "./plan"
+import { withTimeout } from "./timeout"
 import type { ProposedPlan } from "./types"
+
+// Bound every OpenCode round-trip so a hung agent session can't pin an assessment
+// "running" forever (which would block all future assessments). On expiry the call
+// rejects; the driver turns that into an "error" assessment and clears the running
+// flag, so the operator can retry (#48). Override via env for slow local models.
+const PROMPT_TIMEOUT_MS = Number(process.env.OPENCODE_PROMPT_TIMEOUT_MS) || 120_000
 
 let client: OpencodeClient | null = null
 let sessionId: string | null = null
@@ -20,7 +27,11 @@ function getClient(): OpencodeClient {
 
 async function getSessionId(): Promise<string> {
   if (sessionId) return sessionId
-  const res = await getClient().session.create({ body: { title: "patient-flow" } })
+  const res = await withTimeout(
+    getClient().session.create({ body: { title: "patient-flow" } }),
+    PROMPT_TIMEOUT_MS,
+    "opencode session.create",
+  )
   if (res.error || !res.data) {
     throw new Error(`opencode session.create failed: ${JSON.stringify(res.error)}`)
   }
@@ -31,10 +42,14 @@ async function getSessionId(): Promise<string> {
 /** Prompt the orchestrator once; return its concatenated assistant text. */
 export async function promptOrchestrator(text: string): Promise<string> {
   const id = await getSessionId()
-  const res = await getClient().session.prompt({
-    path: { id },
-    body: { agent: "orchestrator", parts: [{ type: "text", text }] },
-  })
+  const res = await withTimeout(
+    getClient().session.prompt({
+      path: { id },
+      body: { agent: "orchestrator", parts: [{ type: "text", text }] },
+    }),
+    PROMPT_TIMEOUT_MS,
+    "opencode session.prompt",
+  )
   if (res.error || !res.data) {
     throw new Error(`opencode session.prompt failed: ${JSON.stringify(res.error)}`)
   }
