@@ -1,3 +1,3 @@
 export * from "./kpis"
-export { runScenario, evaluate } from "./run"
+export { runScenario, evaluate, aggregate, evaluateWithAgent } from "./run"
 export { applyOraclePolicy } from "./policy"
