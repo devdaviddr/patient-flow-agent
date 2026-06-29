@@ -12,7 +12,12 @@ const GapSchema = z.object({
 })
 
 const InterventionInputSchema = z.object({
-  type: z.enum(["expedite_script", "request_transport"]),
+  type: z.enum([
+    "expedite_script",
+    "request_transport",
+    "page_allied_health",
+    "request_placement",
+  ]),
   targetPatientId: z.string(),
   addressesGap: z.string(),
   impactScore: z.number(),

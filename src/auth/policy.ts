@@ -19,6 +19,8 @@ export const ROUTE_POLICY: Record<string, PolicyTier> = {
   "/api/driver/plan": "operator",
   "/api/sim/actions/expedite_script": "operator",
   "/api/sim/actions/request_transport": "operator",
+  "/api/sim/actions/page_allied_health": "operator",
+  "/api/sim/actions/request_placement": "operator",
   "/api/sim/step": "operator",
   "/api/sim/scenario": "operator",
   "/api/eval/run": "operator",

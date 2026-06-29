@@ -5,6 +5,8 @@ import { humanizeTimes } from "../lib/time"
 const ACTION_TITLE: Record<string, string> = {
   expedite_script: "Chase pharmacy",
   request_transport: "Arrange transport",
+  page_allied_health: "Page allied health",
+  request_placement: "Request placement",
 }
 
 const ACTION_EXPLANATION: Record<string, string> = {
@@ -12,6 +14,10 @@ const ACTION_EXPLANATION: Record<string, string> = {
     "This patient is ready to leave but is waiting on pharmacy. Approving asks pharmacy to prioritise it so the bed frees up sooner.",
   request_transport:
     "This patient is ready to leave but is waiting on transport. Approving arranges transport so the bed frees up sooner.",
+  page_allied_health:
+    "This patient is waiting on an allied-health sign-off. Approving pages allied health to prioritise it so the bed frees up sooner.",
+  request_placement:
+    "This patient is waiting on a placement destination. Approving requests placement so the bed frees up sooner.",
 }
 
 export function ApprovalCards({

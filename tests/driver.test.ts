@@ -121,6 +121,35 @@ describe("approval gate (D3 / S6)", () => {
   })
 })
 
+describe("all four blockers are actionable (#35)", () => {
+  it.each([
+    ["page_allied_health", "allied_health"],
+    ["request_placement", "placement"],
+  ] as const)("approve %s clears the %s blocker", async (type, blocker) => {
+    const sim = new Simulator("normal-weekday")
+    const target = sim.getState().patients.find((p) => p.blocker === blocker)!
+    const plan: ProposedPlan = {
+      gaps: [],
+      interventions: [
+        {
+          id: "iv-1",
+          type,
+          targetPatientId: target.id,
+          addressesGap: target.wardId,
+          impactScore: 0.8,
+          rationale: "clears a stuck discharge",
+          status: "proposed",
+        },
+      ],
+      flags: [],
+    }
+    const driver = driverWith(plan, sim)
+    await driver.plan()
+    expect(driver.approve("iv-1").applied).toBe(true)
+    expect(sim.getState().patients.find((p) => p.id === target.id)!.blocker).toBe("none")
+  })
+})
+
 describe("non-actionable flags (G1)", () => {
   it("driver exposes the flags from the plan", async () => {
     const sim = new Simulator("normal-weekday")
