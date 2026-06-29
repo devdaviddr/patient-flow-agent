@@ -33,6 +33,11 @@ async function main(): Promise<void> {
         `  end-of-day headroom: agent mean ${a.mean.endOfDayHeadroom.toFixed(1)} ` +
           `${span(a.min.endOfDayHeadroom, a.max.endOfDayHeadroom)}  vs  without ${b.endOfDayHeadroom}  (higher is better)`,
       )
+      const g = r.agreement
+      console.log(
+        `  reasoning vs reference: precision ${g.precision.toFixed(2)} · recall ${g.recall.toFixed(2)} · ` +
+          `f1 ${g.f1.toFixed(2)} (proposed ${g.proposed.toFixed(1)} / reference ${g.reference.toFixed(1)} per tick)`,
+      )
       const helps =
         a.mean.accessBlockHours < b.accessBlockHours && a.mean.endOfDayHeadroom > b.endOfDayHeadroom
       console.log(`  → agent helps on both (mean): ${helps ? "YES" : "NO"}\n`)

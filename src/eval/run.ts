@@ -2,8 +2,9 @@
 // computing the two flow KPIs. Deterministic (seeded sim + deterministic policy),
 // so the result is reproducible.
 
-import { Simulator, SCENARIOS, type ScenarioName } from "../sim"
+import { Simulator, SCENARIOS, type ScenarioName, type WorldState } from "../sim"
 import { applyOraclePolicy } from "./policy"
+import { meanAgreement, referenceActions, scoreAgreement, type AgreementScore } from "./agreement"
 import type { AggregatedKPIs, AgentEvalResult, EvalResult, FlowKPIs } from "./kpis"
 
 const TICKS = 48 // a full simulated day, at 30-min ticks
@@ -104,12 +105,20 @@ export async function evaluateWithAgent(opts: AgentEvalOptions = {}): Promise<Ag
   for (const scenario of scenarios) {
     const seed = SCENARIOS[scenario].seed
     const runs: FlowKPIs[] = []
+    const scores: AgreementScore[] = [] // every tick of every trial
     for (let t = 0; t < trials; t++) {
       await post("/api/sim/scenario", { scenario, seed })
       let accessBlockHours = 0
       for (let i = 0; i < ticks; i++) {
         await post("/api/driver/plan") // the real agent perceives + proposes (stashed server-side)
-        const proposals = await getJson<{ id: string }[]>("/api/driver/proposals")
+        const proposals = await getJson<{ id: string; type: string; targetPatientId: string }[]>(
+          "/api/driver/proposals",
+        )
+        // Score the agent's reasoning against the deterministic reference for the state
+        // it just planned on (before we act on it).
+        const planState = await getJson<WorldState>("/api/sim/state")
+        scores.push(scoreAgreement(proposals, referenceActions(planState)))
+
         for (const iv of proposals) await post("/api/driver/approve", { interventionId: iv.id })
         const stepBody = (await (await post("/api/sim/step")).json()) as { state: { edQueue: unknown[] } }
         accessBlockHours += stepBody.state.edQueue.length * TICK_HOURS
@@ -120,7 +129,14 @@ export async function evaluateWithAgent(opts: AgentEvalOptions = {}): Promise<Ag
     }
     // Baseline runs the SAME tick count so the comparison is fair (matters for short
     // smoke runs; the default is a full day either way).
-    results.push({ scenario, seed, trials, withAgent: aggregate(runs), withoutAgent: runScenario(scenario, false, ticks) })
+    results.push({
+      scenario,
+      seed,
+      trials,
+      withAgent: aggregate(runs),
+      withoutAgent: runScenario(scenario, false, ticks),
+      agreement: meanAgreement(scores),
+    })
   }
   return results
 }

@@ -3,6 +3,7 @@
 // alias config and pulls in no SDK.)
 
 import type { ScenarioName } from "../sim"
+import type { AgreementSummary } from "./agreement"
 
 export interface FlowKPIs {
   /** total patient-time waiting for an unavailable bed (lower is better) */
@@ -33,4 +34,7 @@ export interface AgentEvalResult {
   trials: number
   withAgent: AggregatedKPIs // distribution over N real-agent trials
   withoutAgent: FlowKPIs // deterministic (no agent)
+  // Reasoning quality (#74 item 4): agreement between the agent's proposals and the
+  // deterministic reference action set, meaned over every tick of every trial.
+  agreement: AgreementSummary
 }
