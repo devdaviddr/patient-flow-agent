@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Feature** | Validate every proposed intervention against the live `WorldState` after parsing and before it's surfaced as approvable — so a hallucinated or mismatched proposal is dropped (and recorded) instead of silently becoming a no-op on approval. |
-| **Issue** | [#74](https://github.com/devdaviddr/patient-flow-agent/issues/74) item 1 · **P1** · milestone *Agent Credibility & Correctness* |
+| **Issue** | [#74](https://github.com/devdaviddr/ai-patient-flow-orchestrator/issues/74) item 1 · **P1** · milestone *Agent Credibility & Correctness* |
 | **Target release** | `0.6.0` (agent reasoning) |
 | **Status** | 📝 SDD step 1 (Specify) |
 | **Branch** | `feat/agent-grounding` (plan) → `feat/agent-grounding-impl` (code) |

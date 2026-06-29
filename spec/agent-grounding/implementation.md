@@ -3,7 +3,7 @@
 | | |
 | --- | --- |
 | **Spec** | `spec/agent-grounding/spec.md` |
-| **Issue** | [#74](https://github.com/devdaviddr/patient-flow-agent/issues/74) item 1 · P1 |
+| **Issue** | [#74](https://github.com/devdaviddr/ai-patient-flow-orchestrator/issues/74) item 1 · P1 |
 | **Status** | 📝 SDD step 2 (Design) — no code until the plan PR is approved |
 | **Surface** | One new pure module (`src/driver/grounding.ts`) + a few lines in `Driver.applyPlan`; the action→blocker map moves to the new module. No new deps, no schema, no API/UI change. |
 
