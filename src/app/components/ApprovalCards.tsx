@@ -17,11 +17,13 @@ const ACTION_EXPLANATION: Record<string, string> = {
 export function ApprovalCards({
   proposals,
   busy,
+  canOperate,
   onApprove,
   onReject,
 }: {
   proposals: Intervention[]
   busy: boolean
+  canOperate: boolean
   onApprove: (id: string) => void
   onReject: (id: string) => void
 }) {
@@ -71,6 +73,9 @@ export function ApprovalCards({
               >
                 {iv.status}
               </div>
+            ) : !canOperate ? (
+              // Viewers see the proposal but not the R7 approve/reject controls.
+              <div className="mt-1 text-xs text-muted">Awaiting a coordinator&apos;s decision</div>
             ) : (
               <div className="mt-2 flex gap-2">
                 <button
