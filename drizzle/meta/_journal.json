@@ -15,6 +15,13 @@
       "when": 1781329427427,
       "tag": "0001_onboarding_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1781400000000,
+      "tag": "0002_ban_guard",
+      "breakpoints": true
     }
   ]
 }

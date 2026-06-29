@@ -35,6 +35,7 @@ function addUser(id: string, role: "viewer" | "coordinator" | "superadmin"): voi
 const del = (id: string) => db.delete(user).where(eq(user.id, id)).run()
 const setRole = (id: string, role: "viewer" | "coordinator" | "superadmin") =>
   db.update(user).set({ role }).where(eq(user.id, id)).run()
+const ban = (id: string) => db.update(user).set({ banned: true }).where(eq(user.id, id)).run()
 const superadminCount = () => superadmin.countSuperadmins()
 
 describe("delete guard", () => {
@@ -64,6 +65,26 @@ describe("demote guard", () => {
     addUser("s1", "superadmin")
     expect(() => setRole("s1", "viewer")).toThrow(/superadmin/i)
     expect(superadminCount()).toBe(1)
+  })
+})
+
+describe("ban guard (#46)", () => {
+  it("allows banning a superadmin while another active one remains", () => {
+    addUser("s1", "superadmin")
+    addUser("s2", "superadmin")
+    expect(() => ban("s1")).not.toThrow()
+  })
+
+  it("aborts banning the last active superadmin (ban != delete/demote)", () => {
+    addUser("s1", "superadmin")
+    expect(() => ban("s1")).toThrow(/superadmin/i)
+  })
+
+  it("counts only active superadmins — can't ban down to zero in turn", () => {
+    addUser("s1", "superadmin")
+    addUser("s2", "superadmin")
+    ban("s1") // succeeds — s2 still active
+    expect(() => ban("s2")).toThrow(/superadmin/i) // s2 is now the last active one
   })
 })
 
