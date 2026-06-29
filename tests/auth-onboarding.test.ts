@@ -3,10 +3,11 @@
 // invite-gated /api/register, /api/account/password, and DELETE /api/account.
 // Synthetic `.test` accounts only — no real PII (S13).
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest"
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { eq } from "drizzle-orm"
 import type { NextRequest } from "next/server"
 import { setupTempAuthDb, type TempAuthDb } from "./helpers/temp-auth-db"
+import { resetRateLimits } from "@/auth/rate-limit"
 
 let temp: TempAuthDb
 let db: typeof import("@/auth/db").db
@@ -27,6 +28,10 @@ beforeAll(async () => {
   accountRoute = await import("@/app/api/account/route")
   keys = invite.generateInvites(new Date())
 })
+
+// The register route is now per-IP rate-limited (#29); these tests fire many
+// header-less registrations that share the "unknown" bucket, so reset between tests.
+beforeEach(() => resetRateLimits())
 
 afterAll(() => temp.cleanup())
 
