@@ -4,6 +4,7 @@
 
 import { getSimulator, Simulator, type ActionResult, type BlockerType, type SimEvent } from "@/sim"
 import { DecisionLog } from "./records"
+import type { RecordStore } from "./record-store"
 import type {
   Assessment,
   DecisionActor,
@@ -30,18 +31,21 @@ export interface DriverDeps {
   planner?: (promptBody: string) => Promise<ProposedPlan>
   /** Inject a fresh Simulator for tests; defaults to the shared dev-server singleton. */
   sim?: Simulator
+  /** Inject a persistence backend (the app wires SQLite); omitted in tests → in-memory only (#33). */
+  recordStore?: RecordStore
 }
 
 export class Driver {
   private readonly planner: (promptBody: string) => Promise<ProposedPlan>
   private readonly sim: Simulator
-  private readonly log = new DecisionLog()
+  private readonly log: DecisionLog
   private current: Intervention[] = []
   private currentFlags: Flag[] = []
   private assessmentState: Assessment | null = null
 
   constructor(deps: DriverDeps = {}) {
     this.sim = deps.sim ?? getSimulator()
+    this.log = new DecisionLog(deps.recordStore)
     this.planner =
       deps.planner ??
       ((body) => import("./adapter").then((m) => m.planViaOrchestrator(body)))

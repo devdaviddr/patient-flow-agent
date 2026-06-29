@@ -87,4 +87,21 @@ export const invite = sqliteTable("invite", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 })
 
+// The driver's audit trail (R10), persisted so the decision timeline survives a
+// container restart (#33). Lives on the same SQLite volume as auth but is written
+// only by the driver; the seeded simulator never reads it, so S12 is unaffected.
+// `payload`/`actor` are JSON text; `id` autoincrements to preserve append order.
+export const decisionRecord = sqliteTable("decision_record", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  at: text("at").notNull(),
+  type: text("type", { enum: ["gap", "plan", "action"] }).notNull(),
+  stateRef: text("state_ref").notNull(),
+  rationale: text("rationale").notNull(),
+  payload: text("payload").notNull(),
+  actor: text("actor"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+})
+
+// Better Auth's adapter only needs the auth tables; decisionRecord is queried
+// directly by the driver's store, so it stays out of this map.
 export const schema = { user, session, account, verification, invite }
