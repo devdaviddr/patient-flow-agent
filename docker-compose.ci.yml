@@ -1,0 +1,8 @@
+# CI override: publish the app port so Playwright (running on the GitHub Actions
+# runner host) can reach the origin. The local docker-compose.override.yml does the
+# same for dev but is gitignored; this one is committed for CI. Compose with:
+#   docker compose -f docker-compose.yml -f docker-compose.ci.yml up --build -d
+services:
+  app:
+    ports:
+      - "3000:3000"
