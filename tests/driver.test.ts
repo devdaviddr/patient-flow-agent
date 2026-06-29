@@ -162,6 +162,34 @@ describe("non-actionable flags (G1)", () => {
   })
 })
 
+describe("plan grounding (#74 item 1)", () => {
+  it("surfaces only grounded interventions and records the drops", async () => {
+    const sim = new Simulator("normal-weekday")
+    const ph = sim.getState().patients.find((p) => p.blocker === "pharmacy_script")!
+    const pl = sim.getState().patients.find((p) => p.blocker === "placement")!
+    const plan: ProposedPlan = {
+      gaps: [],
+      interventions: [
+        { id: "iv-1", type: "expedite_script", targetPatientId: ph.id, addressesGap: ph.wardId, impactScore: 0.9, rationale: "ok", status: "proposed" },
+        { id: "iv-2", type: "page_allied_health", targetPatientId: "ghost", addressesGap: "4A", impactScore: 0.5, rationale: "hallucinated", status: "proposed" },
+        { id: "iv-3", type: "request_transport", targetPatientId: pl.id, addressesGap: pl.wardId, impactScore: 0.4, rationale: "mismatch", status: "proposed" },
+      ],
+      flags: [],
+    }
+    const driver = driverWith(plan, sim)
+    await driver.plan()
+
+    // Only the grounded one is approvable, and approving it actually applies (no no-op).
+    expect(driver.proposals().map((p) => p.id)).toEqual(["iv-1"])
+    expect(driver.approve("iv-1").applied).toBe(true)
+
+    // The drops are recorded on the plan record (R10).
+    const planRec = driver.records().find((r) => r.type === "plan")!
+    expect(planRec.rationale).toContain("dropped 2 ungrounded")
+    expect((planRec.payload as { dropped: unknown[] }).dropped).toHaveLength(2)
+  })
+})
+
 describe("re-plan & clock (D4 / S7)", () => {
   it("after approve, a re-plan sees the change; advanceClock moves time", async () => {
     const sim = new Simulator("normal-weekday")

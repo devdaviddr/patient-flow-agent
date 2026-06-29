@@ -2,24 +2,11 @@
 // human APPROVES/REJECTS item-by-item; only then does the driver execute, in-process
 // via the simulator. The gate lives here, never in the harness `ask`.
 
-import { getSimulator, Simulator, type ActionResult, type BlockerType, type SimEvent } from "@/sim"
+import { getSimulator, Simulator, type ActionResult, type SimEvent } from "@/sim"
 import { DecisionLog } from "./records"
+import { BLOCKER_FOR, groundInterventions } from "./grounding"
 import type { RecordStore } from "./record-store"
-import type {
-  Assessment,
-  DecisionActor,
-  Flag,
-  Intervention,
-  InterventionType,
-  ProposedPlan,
-} from "./types"
-
-const BLOCKER_FOR: Record<InterventionType, BlockerType> = {
-  expedite_script: "pharmacy_script",
-  request_transport: "transport",
-  page_allied_health: "allied_health",
-  request_placement: "placement",
-}
+import type { Assessment, DecisionActor, Flag, Intervention, ProposedPlan } from "./types"
 
 const TICK_PROMPT =
   "Assess the current bed position. Perceive via world_state, call the forecast " +
@@ -51,10 +38,15 @@ export class Driver {
       ((body) => import("./adapter").then((m) => m.planViaOrchestrator(body)))
   }
 
-  /** Record a plan's gaps + stash the proposals/flags. No state change. */
+  /** Record a plan's gaps + stash the grounded proposals/flags. No state change. */
   private applyPlan(plan: ProposedPlan): void {
-    const stateRef = this.sim.getState().at
-    this.current = plan.interventions.map((iv) => ({ ...iv }))
+    const state = this.sim.getState()
+    const stateRef = state.at
+    // Ground the plan against the live world: only interventions whose target patient
+    // exists and is blocked on the matching type can act, so surface only those. The
+    // rest are dropped (and recorded) instead of silently no-opping on approval (#74).
+    const { grounded, dropped } = groundInterventions(plan.interventions, state)
+    this.current = grounded.map((iv) => ({ ...iv }))
     this.currentFlags = plan.flags ?? []
     for (const gap of plan.gaps) {
       this.log.add({
@@ -69,8 +61,11 @@ export class Driver {
       at: stateRef,
       type: "plan",
       stateRef,
-      rationale: `Proposed ${plan.interventions.length} action(s) to free beds; flagged ${this.currentFlags.length} blocker(s) for a human to chase`,
-      payload: plan.interventions,
+      rationale:
+        `Proposed ${grounded.length} grounded action(s) to free beds` +
+        (dropped.length > 0 ? `; dropped ${dropped.length} ungrounded` : "") +
+        `; flagged ${this.currentFlags.length} blocker(s) for a human to chase`,
+      payload: { interventions: grounded, dropped },
     })
   }
 
