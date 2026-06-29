@@ -10,6 +10,7 @@ import { readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { Simulator, forecastDischarges, forecastDemand } from "@/sim"
+import { findClinicalTerms as offendingTerms } from "@/safety"
 
 const ROOT = process.cwd()
 
@@ -27,20 +28,8 @@ function walk(relDir: string, exts: string[]): string[] {
   return out
 }
 
-// Whole-word, case-insensitive. Department/logistics words (pharmacy, transport,
-// script, placement, allied-health) are NOT clinical and stay allowed.
-const DENYLIST = [
-  "acuity",
-  "triage",
-  "diagnosis",
-  "diagnose",
-  "treatment",
-  "treat",
-  "prognosis",
-  "symptom",
-  "medication",
-  "drug",
-]
+// The denylist + matcher now live in src/safety.ts (shared with the agent-config
+// validator, #56); imported above as offendingTerms.
 
 // Everything the agent harness authors — globbed so a new tool/agent is scanned
 // automatically (the gap in the old hand-list).
@@ -54,6 +43,7 @@ const SRC_AUTHORED = [
   "src/sim/patient.ts", // synthetic name pool
   "src/sim/scenarios.ts", // ward names
   "src/driver/plan.ts", // builds/parses intervention rationale + flag reason
+  "src/driver/agent-config.ts", // the default agent prompt/plan-instruction (#56)
   // 0.4.0 auth strings: seed display titles + demo credentials + login UI copy.
   // Auth records carry staff identity only — never clinical content (S13).
   "src/auth/seed.ts",
@@ -67,10 +57,6 @@ const SRC_AUTHORED = [
 ]
 
 const AUTHORED_FILES = [...OPENCODE_AUTHORED, ...SRC_AUTHORED]
-
-function offendingTerms(text: string): string[] {
-  return DENYLIST.filter((term) => new RegExp(`\\b${term}\\b`, "i").test(text))
-}
 
 function sampledOutputs(): string {
   const parts: string[] = []

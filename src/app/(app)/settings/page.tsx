@@ -1,12 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "../../lib/auth"
 import { Panel } from "../../components/Panel"
 
+// Mirrors src/driver/agent-config.ts (kept local so the client bundle doesn't import
+// the server's DB-backed module).
+interface AgentConfig {
+  model: string
+  systemPrompt: string | null
+  planInstruction: string
+  promptTimeoutMs: number
+}
+
 export default function SettingsPage() {
   const { user, logout } = useAuth()
+  const canOperate = user?.role === "coordinator" || user?.role === "superadmin"
   const router = useRouter()
   const [scenario, setScenario] = useState("normal-weekday")
   const [busy, setBusy] = useState(false)
@@ -20,6 +30,55 @@ export default function SettingsPage() {
   const [confirming, setConfirming] = useState(false)
   const [delBusy, setDelBusy] = useState(false)
   const [delError, setDelError] = useState<string | null>(null)
+
+  // AI configuration (#56) — operator-only; the server is the authority.
+  const [cfg, setCfg] = useState<AgentConfig | null>(null)
+  const [cfgBusy, setCfgBusy] = useState(false)
+  const [cfgMsg, setCfgMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  useEffect(() => {
+    if (!canOperate) return
+    fetch("/api/agent/config")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((c: AgentConfig | null) => c && setCfg(c))
+      .catch(() => {})
+  }, [canOperate])
+
+  const saveConfig = async () => {
+    if (!cfg) return
+    setCfgBusy(true)
+    setCfgMsg(null)
+    try {
+      const res = await fetch("/api/agent/config", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(cfg),
+      })
+      const body = (await res.json()) as AgentConfig & { error?: string }
+      if (res.ok) {
+        setCfg(body)
+        setCfgMsg({ ok: true, text: "Saved." })
+      } else {
+        setCfgMsg({ ok: false, text: body.error ?? "Could not save." })
+      }
+    } finally {
+      setCfgBusy(false)
+    }
+  }
+
+  const resetConfig = async () => {
+    setCfgBusy(true)
+    setCfgMsg(null)
+    try {
+      const res = await fetch("/api/agent/config", { method: "DELETE" })
+      if (res.ok) {
+        setCfg((await res.json()) as AgentConfig)
+        setCfgMsg({ ok: true, text: "Reset to defaults." })
+      }
+    } finally {
+      setCfgBusy(false)
+    }
+  }
 
   const load = async () => {
     setBusy(true)
@@ -107,15 +166,88 @@ export default function SettingsPage() {
         </div>
       </Panel>
 
-      <Panel title="Reasoning model">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted">Active model</span>
-          <span className="font-medium">opencode/big-pickle</span>
-        </div>
-        <p className="mt-2 text-xs text-muted">
-          OpenCode Zen free tier — no API key, no cost. Swappable to hosted Claude or local Ollama by
-          editing the agent files in <code>.opencode/agents/</code>.
-        </p>
+      <Panel title="AI configuration">
+        {!canOperate ? (
+          <p className="text-sm text-muted">
+            The AI configuration is managed by coordinators. Default model:{" "}
+            <span className="font-medium">opencode/big-pickle</span> (OpenCode Zen free tier).
+          </p>
+        ) : !cfg ? (
+          <p className="text-sm text-muted">Loading…</p>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-muted">
+              Retune the agent at runtime — applied on the next assessment, no redeploy. Custom prompts
+              are checked for disallowed wording before saving.
+            </p>
+            <div>
+              <label className="mb-1 block text-sm text-muted">Model (provider/model)</label>
+              <input
+                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+                value={cfg.model}
+                onChange={(e) => setCfg({ ...cfg, model: e.target.value })}
+                list="model-presets"
+              />
+              <datalist id="model-presets">
+                <option value="opencode/big-pickle" />
+                <option value="anthropic/claude-sonnet-4-5" />
+                <option value="anthropic/claude-haiku-4-5" />
+                <option value="ollama/llama3.1" />
+              </datalist>
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-muted">
+                System prompt override (blank = the built-in agent prompt)
+              </label>
+              <textarea
+                rows={3}
+                className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs outline-none focus:border-primary"
+                value={cfg.systemPrompt ?? ""}
+                onChange={(e) => setCfg({ ...cfg, systemPrompt: e.target.value || null })}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-muted">Plan instruction</label>
+              <textarea
+                rows={6}
+                className="w-full rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs outline-none focus:border-primary"
+                value={cfg.planInstruction}
+                onChange={(e) => setCfg({ ...cfg, planInstruction: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm text-muted">Prompt timeout (ms)</label>
+              <input
+                type="number"
+                min={1000}
+                className="w-40 rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+                value={cfg.promptTimeoutMs}
+                onChange={(e) => setCfg({ ...cfg, promptTimeoutMs: Number(e.target.value) })}
+              />
+            </div>
+            {cfgMsg && (
+              <p role="alert" className={`text-sm ${cfgMsg.ok ? "text-clean" : "text-blocked"}`}>
+                {cfgMsg.text}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <button
+                disabled={cfgBusy}
+                onClick={saveConfig}
+                className="rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+              >
+                {cfgBusy ? "Saving…" : "Save"}
+              </button>
+              <button
+                disabled={cfgBusy}
+                onClick={resetConfig}
+                className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-surface-2 disabled:opacity-50"
+              >
+                Reset to defaults
+              </button>
+            </div>
+          </div>
+        )}
       </Panel>
 
       <Panel title="Profile">

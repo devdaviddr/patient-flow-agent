@@ -24,6 +24,7 @@ export const ROUTE_POLICY: Record<string, PolicyTier> = {
   "/api/sim/step": "operator",
   "/api/sim/scenario": "operator",
   "/api/eval/run": "operator",
+  "/api/agent/config": "operator",
 
   // Authenticated (any role): read-only views + read-only Q&A + forecasts +
   // self-service account management (change-password, delete-own-account).

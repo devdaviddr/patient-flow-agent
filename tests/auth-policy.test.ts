@@ -107,9 +107,9 @@ async function fireRoute(importPath: string, pathname: string): Promise<Response
 }
 
 describe("route discovery sanity", () => {
-  it("finds the 26 on-disk api routes", () => {
-    // 25 app routes (+/api/driver/assessment/stream, #34) + the Better Auth catch-all.
-    expect(ROUTES.length).toBe(26)
+  it("finds the 27 on-disk api routes", () => {
+    // 26 app routes (+/api/agent/config, #56) + the Better Auth catch-all.
+    expect(ROUTES.length).toBe(27)
   })
 })
 
