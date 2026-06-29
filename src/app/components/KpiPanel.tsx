@@ -45,22 +45,27 @@ function Metric({
 export function KpiPanel({
   results,
   busy,
+  canOperate,
   onRun,
 }: {
   results: EvalResult[] | null
   busy: boolean
+  canOperate: boolean
   onRun: () => void
 }) {
   return (
     <div>
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          disabled={busy}
-          onClick={onRun}
-          className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs hover:border-primary disabled:opacity-50"
-        >
-          {busy ? "Running…" : "Run the comparison"}
-        </button>
+        {/* Running the eval is an operator action (server-enforced) — hidden for viewers. */}
+        {canOperate && (
+          <button
+            disabled={busy}
+            onClick={onRun}
+            className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs hover:border-primary disabled:opacity-50"
+          >
+            {busy ? "Running…" : "Run the comparison"}
+          </button>
+        )}
         <span className="text-xs text-muted">
           Replays the same day twice — with the agent helping, and without it.
         </span>

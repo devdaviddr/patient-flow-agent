@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react"
 import type { WorldState } from "@/sim"
 import type { Assessment, DecisionRecord, Flag, Intervention } from "@/driver"
 import type { EvalResult } from "@/eval"
+import { useAuth } from "../lib/auth"
 import { BedBoard } from "../components/BedBoard"
 import { EdQueue, DischargeQueue } from "../components/Queues"
 import { AssessmentPanel } from "../components/AssessmentPanel"
@@ -15,9 +16,25 @@ import { KpiPanel } from "../components/KpiPanel"
 import { ClockControls } from "../components/ClockControls"
 import { Panel } from "../components/Panel"
 
+// An API call that failed at the HTTP layer (non-2xx). Carries a user-facing
+// message parsed from the route's `{ error }` body so handlers can surface it
+// instead of silently casting an error body to a domain type (#44).
+class ApiError extends Error {}
+
+async function errorMessage(r: Response): Promise<string> {
+  try {
+    const data = (await r.json()) as { error?: unknown }
+    if (typeof data?.error === "string") return data.error
+  } catch {
+    /* body wasn't JSON — fall through to the status line */
+  }
+  return `Request failed (${r.status})`
+}
+
 async function getJSON<T>(url: string): Promise<T> {
   const r = await fetch(url, { cache: "no-store" })
-  return r.json()
+  if (!r.ok) throw new ApiError(await errorMessage(r))
+  return r.json() as Promise<T>
 }
 async function postJSON<T>(url: string, body?: unknown): Promise<T> {
   const r = await fetch(url, {
@@ -25,12 +42,21 @@ async function postJSON<T>(url: string, body?: unknown): Promise<T> {
     headers: { "content-type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
   })
-  return r.json()
+  if (!r.ok) throw new ApiError(await errorMessage(r))
+  return r.json() as Promise<T>
 }
+
+const msg = (e: unknown): string => (e instanceof Error ? e.message : String(e))
 
 type ColId = "edqueue" | "discharge" | "proposed" | "flagged" | "assessment"
 
 export default function DashboardPage() {
+  const { user } = useAuth()
+  // Mirror the server's operator tier (R7). The server (withPolicy) is the
+  // authority; this only decides whether to render the operator controls so a
+  // viewer isn't shown buttons that would 403 (#45).
+  const canOperate = user?.role === "coordinator" || user?.role === "superadmin"
+
   const [world, setWorld] = useState<WorldState | null>(null)
   const [proposals, setProposals] = useState<Intervention[]>([])
   const [flags, setFlags] = useState<Flag[]>([])
@@ -38,6 +64,7 @@ export default function DashboardPage() {
   const [evalResults, setEvalResults] = useState<EvalResult[] | null>(null)
   const [assessment, setAssessment] = useState<Assessment | null>(null)
   const [assessNote, setAssessNote] = useState("")
+  const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
   const [assessing, setAssessing] = useState(false)
   const [evaluating, setEvaluating] = useState(false)
@@ -75,17 +102,26 @@ export default function DashboardPage() {
   useEffect(() => {
     // Initial async load — setState runs after the await, not synchronously.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    refresh()
+    refresh().catch((e) => setError(msg(e)))
   }, [refresh])
 
-  // Real-time playback: auto-advance the clock while playing.
+  // Real-time playback: auto-advance the clock while playing. A step failure
+  // (e.g. a lapsed session → 401) stops playback and surfaces, rather than
+  // 403-ing silently every 3s (#44).
   useEffect(() => {
     if (!playing) return
     let active = true
     const id = setInterval(async () => {
       if (!active) return
-      await fetch("/api/sim/step", { method: "POST" })
-      await refresh()
+      try {
+        await postJSON("/api/sim/step")
+        await refresh()
+      } catch (e) {
+        if (active) {
+          setError(msg(e))
+          setPlaying(false)
+        }
+      }
     }, 3000)
     return () => {
       active = false
@@ -95,40 +131,55 @@ export default function DashboardPage() {
 
   const step = async () => {
     setBusy(true)
+    setError("")
     try {
       await postJSON("/api/sim/step")
       await refresh()
+    } catch (e) {
+      setError(msg(e))
     } finally {
       setBusy(false)
     }
   }
 
+  // Kick off an assessment and poll it to completion. try/finally guarantees the
+  // spinner always clears — a transport/JSON throw used to leave the button stuck
+  // on "Assessing…" forever (#43). getJSON throws on a non-2xx poll (#44).
   const assess = async () => {
     setAssessing(true)
     setAssessNote("")
+    setError("")
     setAssessment(null) // clear the previous run's log
-    await fetch("/api/driver/assess", { method: "POST" })
-    // Poll the live assessment until it finishes.
-    for (;;) {
-      const a = await getJSON<Assessment | null>("/api/driver/assessment")
-      setAssessment(a)
-      if (!a || a.status !== "running") {
-        if (a?.status === "error") {
-          setAssessNote(`Assess failed: ${a.error} (is opencode serve running?)`)
+    try {
+      const kickoff = await fetch("/api/driver/assess", { method: "POST" })
+      if (!kickoff.ok) throw new ApiError(await errorMessage(kickoff))
+      for (;;) {
+        const a = await getJSON<Assessment | null>("/api/driver/assessment")
+        setAssessment(a)
+        if (!a || a.status !== "running") {
+          if (a?.status === "error") {
+            setAssessNote(`Assess failed: ${a.error} (is opencode serve running?)`)
+          }
+          break
         }
-        break
+        await new Promise((r) => setTimeout(r, 1200))
       }
-      await new Promise((r) => setTimeout(r, 1200))
+      await refresh()
+    } catch (e) {
+      setAssessNote(`Assess failed: ${msg(e)}`)
+    } finally {
+      setAssessing(false)
     }
-    await refresh()
-    setAssessing(false)
   }
 
   const decide = async (path: string, interventionId: string) => {
     setBusy(true)
+    setError("")
     try {
       await postJSON(path, { interventionId })
       await refresh()
+    } catch (e) {
+      setError(msg(e))
     } finally {
       setBusy(false)
     }
@@ -136,8 +187,11 @@ export default function DashboardPage() {
 
   const runEval = async () => {
     setEvaluating(true)
+    setError("")
     try {
       setEvalResults(await getJSON<EvalResult[]>("/api/eval/run"))
+    } catch (e) {
+      setError(msg(e))
     } finally {
       setEvaluating(false)
     }
@@ -156,11 +210,21 @@ export default function DashboardPage() {
           assessing={assessing}
           assessed={!!assessment}
           playing={playing}
+          canOperate={canOperate}
           onStep={step}
           onAssess={assess}
           onTogglePlay={() => setPlaying((p) => !p)}
         />
       </div>
+
+      {error && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-blocked/40 bg-blocked/10 px-3 py-2 text-xs text-blocked">
+          <span>{error}</span>
+          <button onClick={() => setError("")} className="shrink-0 underline hover:no-underline">
+            dismiss
+          </button>
+        </div>
+      )}
 
       {/* Bed-board — its own row */}
       <Panel title="Bed-board">
@@ -186,6 +250,7 @@ export default function DashboardPage() {
                 <ApprovalCards
                   proposals={proposals}
                   busy={busy}
+                  canOperate={canOperate}
                   onApprove={(id) => decide("/api/driver/approve", id)}
                   onReject={(id) => decide("/api/driver/reject", id)}
                 />
@@ -242,7 +307,7 @@ export default function DashboardPage() {
       })()}
 
       <Panel title="Does the agent help?">
-        <KpiPanel results={evalResults} busy={evaluating} onRun={runEval} />
+        <KpiPanel results={evalResults} busy={evaluating} canOperate={canOperate} onRun={runEval} />
       </Panel>
 
       <Panel title="Decision timeline">

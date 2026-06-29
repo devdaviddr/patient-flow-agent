@@ -9,6 +9,7 @@ export function ClockControls({
   assessing,
   assessed,
   playing,
+  canOperate,
   onStep,
   onAssess,
   onTogglePlay,
@@ -18,6 +19,7 @@ export function ClockControls({
   assessing: boolean
   assessed: boolean
   playing: boolean
+  canOperate: boolean
   onStep: () => void
   onAssess: () => void
   onTogglePlay: () => void
@@ -28,6 +30,15 @@ export function ClockControls({
         <span className="text-muted" aria-hidden>🕑</span>
         {fmtDateTime(at)}
       </span>
+      {/* Operator controls (Play/Step/Assess) are R7 actions — hidden for viewers;
+          the server still enforces (withPolicy). Viewers get a read-only marker. */}
+      {!canOperate && (
+        <span className="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-muted">
+          Read-only (viewer)
+        </span>
+      )}
+      {canOperate && (
+        <>
       <button
         onClick={onTogglePlay}
         disabled={busy}
@@ -51,6 +62,8 @@ export function ClockControls({
         {assessing && <Loader2 size={15} className="animate-spin" />}
         {assessing ? "Assessing…" : assessed ? "Re-assess" : "Assess"}
       </button>
+        </>
+      )}
     </div>
   )
 }
