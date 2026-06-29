@@ -4,8 +4,13 @@ import { z } from "zod"
 import { auth } from "@/auth/auth"
 import { redeem, roleForUnusedKey } from "@/auth/invite"
 import { checkSameOrigin } from "@/auth/csrf"
+import { checkRateLimit } from "@/auth/rate-limit"
 
 export const dynamic = "force-dynamic"
+
+// Sign-up is unauthenticated; cap redemption attempts per IP (keys are 128-bit so
+// brute force is infeasible, but this bounds an uncapped account-creation endpoint).
+const REGISTER_RATE_LIMIT = { windowSeconds: 60, max: 5 }
 
 // Public, invite-gated sign-up (spec B1/B3). Built-in Better Auth sign-up stays
 // disabled; we create the account through the same internalAdapter path the seed
@@ -30,6 +35,8 @@ const GENERIC_ERROR = "Could not create an account. Check your invite key and de
 export async function POST(req: NextRequest): Promise<Response> {
   const csrf = checkSameOrigin(req)
   if (csrf) return csrf
+  const limited = checkRateLimit(req, "register", REGISTER_RATE_LIMIT)
+  if (limited) return limited
 
   const parsed = RegisterBody.safeParse(await req.json().catch(() => null))
   if (!parsed.success) {
