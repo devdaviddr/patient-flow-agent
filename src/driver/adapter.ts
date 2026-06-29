@@ -5,13 +5,8 @@
 import { createOpencodeClient, type OpencodeClient } from "@opencode-ai/sdk"
 import { parsePlan } from "./plan"
 import { withTimeout } from "./timeout"
+import { getAgentConfig, parseModel } from "./agent-config"
 import type { ProposedPlan } from "./types"
-
-// Bound every OpenCode round-trip so a hung agent session can't pin an assessment
-// "running" forever (which would block all future assessments). On expiry the call
-// rejects; the driver turns that into an "error" assessment and clears the running
-// flag, so the operator can retry (#48). Override via env for slow local models.
-const PROMPT_TIMEOUT_MS = Number(process.env.OPENCODE_PROMPT_TIMEOUT_MS) || 120_000
 
 let client: OpencodeClient | null = null
 let sessionId: string | null = null
@@ -29,7 +24,7 @@ async function getSessionId(): Promise<string> {
   if (sessionId) return sessionId
   const res = await withTimeout(
     getClient().session.create({ body: { title: "patient-flow" } }),
-    PROMPT_TIMEOUT_MS,
+    getAgentConfig().promptTimeoutMs,
     "opencode session.create",
   )
   if (res.error || !res.data) {
@@ -42,12 +37,19 @@ async function getSessionId(): Promise<string> {
 /** Prompt the orchestrator once; return its concatenated assistant text. */
 export async function promptOrchestrator(text: string): Promise<string> {
   const id = await getSessionId()
+  // Runtime AI config (#56): model, optional system override, and timeout.
+  const cfg = getAgentConfig()
   const res = await withTimeout(
     getClient().session.prompt({
       path: { id },
-      body: { agent: "orchestrator", parts: [{ type: "text", text }] },
+      body: {
+        agent: "orchestrator",
+        model: parseModel(cfg.model),
+        ...(cfg.systemPrompt ? { system: cfg.systemPrompt } : {}),
+        parts: [{ type: "text", text }],
+      },
     }),
-    PROMPT_TIMEOUT_MS,
+    cfg.promptTimeoutMs,
     "opencode session.prompt",
   )
   if (res.error || !res.data) {
@@ -66,38 +68,12 @@ export async function askOrchestrator(question: string): Promise<string> {
   )
 }
 
-// The instruction appended each tick so the orchestrator returns a parseable plan.
-const PLAN_INSTRUCTION = `
-For every not-ready discharge, identify its blocker across all four types
-(pharmacy_script, transport, allied_health, placement). You may ask @discharge for the detail.
-Every type is actionable — propose the matching action for each:
-  pharmacy_script -> expedite_script
-  transport       -> request_transport
-  allied_health   -> page_allied_health
-  placement       -> request_placement
-Use "flags" only for a blocker you genuinely cannot match to one of these actions.
-
-Now return ONLY a JSON object (in a \`\`\`json fenced block) of this exact shape — no prose after it:
-{
-  "gaps": [{ "wardId": string, "atTime": ISO8601, "projectedDeficit": number, "factors": string[] }],
-  "interventions": [{
-    "type": "expedite_script" | "request_transport" | "page_allied_health" | "request_placement",
-    "targetPatientId": string, "addressesGap": string,
-    "impactScore": number, "rationale": string
-  }],
-  "flags": [{
-    "patientId": string, "wardId": string,
-    "blocker": "allied_health" | "placement", "reason": string
-  }]
-}
-Rank interventions by impactScore, highest first. Propose only; do not call any action tool.`
-
 /**
  * Default planner: prompt the orchestrator, parse its plan. One retry with a
  * terse correction if the first response isn't valid JSON — never a silent empty plan.
  */
 export async function planViaOrchestrator(promptBody: string): Promise<ProposedPlan> {
-  const first = await promptOrchestrator(`${promptBody}\n${PLAN_INSTRUCTION}`)
+  const first = await promptOrchestrator(`${promptBody}\n${getAgentConfig().planInstruction}`)
   try {
     return parsePlan(first)
   } catch {
@@ -179,7 +155,7 @@ export async function planViaOrchestratorLogged(
   const pollPromise = poll()
 
   const runOnce = async (): Promise<ProposedPlan> => {
-    const first = await promptOrchestrator(`${promptBody}\n${PLAN_INSTRUCTION}`)
+    const first = await promptOrchestrator(`${promptBody}\n${getAgentConfig().planInstruction}`)
     try {
       return parsePlan(first)
     } catch {

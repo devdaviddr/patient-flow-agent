@@ -116,6 +116,18 @@ export const authEvent = sqliteTable("auth_event", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 })
 
-// Better Auth's adapter only needs the auth tables; decisionRecord + authEvent are
-// queried directly, so they stay out of this map.
+// Runtime-tunable AI configuration (#56): a single row (id = 1) the adapter reads at
+// prompt time, so a coordinator can change the model, system prompt, plan instruction,
+// and timeout without a redeploy. NULL columns mean "use the built-in default".
+export const agentConfig = sqliteTable("agent_config", {
+  id: integer("id").primaryKey(),
+  model: text("model"),
+  systemPrompt: text("system_prompt"),
+  planInstruction: text("plan_instruction"),
+  promptTimeoutMs: integer("prompt_timeout_ms"),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).notNull(),
+})
+
+// Better Auth's adapter only needs the auth tables; decisionRecord + authEvent +
+// agentConfig are queried directly, so they stay out of this map.
 export const schema = { user, session, account, verification, invite }
