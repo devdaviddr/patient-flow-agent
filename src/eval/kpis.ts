@@ -17,3 +17,20 @@ export interface EvalResult {
   withAgent: FlowKPIs
   withoutAgent: FlowKPIs
 }
+
+// The model isn't seeded, so the real-agent eval runs N trials and reports the
+// spread rather than a single replay (#31).
+export interface AggregatedKPIs {
+  mean: FlowKPIs
+  min: FlowKPIs
+  max: FlowKPIs
+  trials: FlowKPIs[]
+}
+
+export interface AgentEvalResult {
+  scenario: ScenarioName
+  seed: number
+  trials: number
+  withAgent: AggregatedKPIs // distribution over N real-agent trials
+  withoutAgent: FlowKPIs // deterministic (no agent)
+}
