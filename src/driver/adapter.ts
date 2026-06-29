@@ -61,6 +61,38 @@ export async function promptOrchestrator(text: string): Promise<string> {
     .join("")
 }
 
+export interface ModelChoice {
+  id: string // "provider/model" — what agent-config stores
+  providerID: string
+  modelID: string
+  name: string // model display name
+  provider: string // provider display name
+}
+
+/**
+ * Every model OpenCode currently has configured, flattened to provider/model choices
+ * (#75). Reflects exactly what the harness can serve — Zen's free models always, plus
+ * Anthropic/OpenRouter/Ollama when their key reaches the container. Returns [] if the
+ * harness is unreachable, so the caller degrades gracefully (never throws to the UI).
+ */
+export async function listModels(): Promise<ModelChoice[]> {
+  try {
+    const res = await withTimeout(getClient().config.providers(), 10_000, "config.providers")
+    const providers = res.data?.providers ?? []
+    return providers.flatMap((p) =>
+      Object.values(p.models).map((m) => ({
+        id: `${p.id}/${m.id}`,
+        providerID: p.id,
+        modelID: m.id,
+        name: m.name,
+        provider: p.name,
+      })),
+    )
+  } catch {
+    return []
+  }
+}
+
 /** Plain-language Q&A (R9): ask the orchestrator a question, return its prose answer. */
 export async function askOrchestrator(question: string): Promise<string> {
   return promptOrchestrator(

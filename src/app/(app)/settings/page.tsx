@@ -14,6 +14,13 @@ interface AgentConfig {
   promptTimeoutMs: number
 }
 
+// Mirrors adapter.ts ModelChoice — the models OpenCode actually has configured (#75).
+interface ModelChoice {
+  id: string
+  name: string
+  provider: string
+}
+
 export default function SettingsPage() {
   const { user, logout } = useAuth()
   const canOperate = user?.role === "coordinator" || user?.role === "superadmin"
@@ -35,12 +42,18 @@ export default function SettingsPage() {
   const [cfg, setCfg] = useState<AgentConfig | null>(null)
   const [cfgBusy, setCfgBusy] = useState(false)
   const [cfgMsg, setCfgMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [models, setModels] = useState<ModelChoice[]>([])
 
   useEffect(() => {
     if (!canOperate) return
     fetch("/api/agent/config")
       .then((r) => (r.ok ? r.json() : null))
       .then((c: AgentConfig | null) => c && setCfg(c))
+      .catch(() => {})
+    // The live model list from OpenCode; empty → the picker falls back to free-text.
+    fetch("/api/agent/models")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((m: ModelChoice[]) => setModels(Array.isArray(m) ? m : []))
       .catch(() => {})
   }, [canOperate])
 
@@ -181,19 +194,39 @@ export default function SettingsPage() {
               are checked for disallowed wording before saving.
             </p>
             <div>
-              <label className="mb-1 block text-sm text-muted">Model (provider/model)</label>
-              <input
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
-                value={cfg.model}
-                onChange={(e) => setCfg({ ...cfg, model: e.target.value })}
-                list="model-presets"
-              />
-              <datalist id="model-presets">
-                <option value="opencode/big-pickle" />
-                <option value="anthropic/claude-sonnet-4-5" />
-                <option value="anthropic/claude-haiku-4-5" />
-                <option value="ollama/llama3.1" />
-              </datalist>
+              <label className="mb-1 block text-sm text-muted">Model</label>
+              {models.length > 0 ? (
+                // Live list from OpenCode, grouped by provider. Include the current
+                // value even if it's not in the list, so a saved model still shows.
+                <select
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+                  value={cfg.model}
+                  onChange={(e) => setCfg({ ...cfg, model: e.target.value })}
+                >
+                  {!models.some((m) => m.id === cfg.model) && (
+                    <option value={cfg.model}>{cfg.model} (current)</option>
+                  )}
+                  {[...new Set(models.map((m) => m.provider))].map((provider) => (
+                    <optgroup key={provider} label={provider}>
+                      {models
+                        .filter((m) => m.provider === provider)
+                        .map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name} — {m.id}
+                          </option>
+                        ))}
+                    </optgroup>
+                  ))}
+                </select>
+              ) : (
+                // OpenCode unreachable → free-text fallback so Settings never breaks.
+                <input
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-primary"
+                  value={cfg.model}
+                  onChange={(e) => setCfg({ ...cfg, model: e.target.value })}
+                  placeholder="provider/model"
+                />
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm text-muted">
