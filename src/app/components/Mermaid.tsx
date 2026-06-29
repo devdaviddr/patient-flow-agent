@@ -17,7 +17,13 @@ export function Mermaid({ chart }: { chart: string }) {
       if (!initialized) {
         mermaid.initialize({
           startOnLoad: false,
-          securityLevel: "loose",
+          // The rendered SVG is injected via dangerouslySetInnerHTML, so the diagram
+          // source must never carry executable markup. `antiscript` strips <script>
+          // (and disables click handlers) while still honouring the <br/> line breaks
+          // our labels use — unlike `strict`, which would render them as literal text.
+          // INVARIANT: every `chart` passed here is a hardcoded literal (about/page),
+          // never agent- or user-derived. Keep it that way; do not feed model output in.
+          securityLevel: "antiscript",
           theme: "base",
           fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif",
           themeVariables: {
