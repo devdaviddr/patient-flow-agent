@@ -4,7 +4,7 @@
 
 An AI agent running a perceive → reason → plan → act loop over a *simulated* hospital. Our control loop owns a seedable clock; each tick it prompts an agent (in the OpenCode harness) to assess the bed position, explain capacity gaps, and propose ranked fixes — a human approves each before it runs. Synthetic data throughout; a portfolio piece where the agent design is what's on show.
 
-Authoritative docs (docs win over code; bump the doc version on change): `PRD.md`, `Architecture.md`, `OpenCode-Harness.md`, `DEVELOPMENT_PLAN.md`.
+Authoritative docs (docs win over code; bump the doc version on change): `PRD.md`, `Architecture.md`, `OpenCode-Harness.md`, `development-Plan.md`.
 
 ## Tech Stack
 

@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| **Version** | 1.2.0 |
+| **Version** | 1.3.0 |
 | **Status** | Draft |
 | **Owner** | David |
 | **Date** | 2026-06-13 |
@@ -130,14 +130,18 @@ flowchart TB
 
 The only domain-aware *stateful* component. Holds the `WorldState`, advances a **seedable clock**, and emits typed `SimEvent`s — the only thing that mutates state. Exposes a small HTTP surface:
 
+In the shipped app the simulator is in-process and its surface is served by Next.js route handlers under the **`/api/sim/*`** prefix (the bare paths below are the logical names):
+
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /state` | current `WorldState` |
-| `POST /forecast/discharges` | heuristic discharge forecast (with rationale) |
-| `POST /forecast/demand` | heuristic demand forecast (with rationale) |
-| `POST /actions/{type}` | apply an approved action → emits a `SimEvent` |
+| `GET /api/sim/state` | current `WorldState` |
+| `POST /api/sim/forecast/discharges` | heuristic discharge forecast (with rationale) |
+| `POST /api/sim/forecast/demand` | heuristic demand forecast (with rationale) |
+| `POST /api/sim/actions/{type}` | apply an approved action → emits a `SimEvent` |
+| `POST /api/sim/step` | advance the seedable clock one tick (dev/eval control) |
+| `POST /api/sim/scenario` | reset to a named scenario + seed |
 
-Because it's seeded, the same seed + scenario replays an identical event stream — the basis of reproducibility and fair evaluation.
+The read routes are `authenticated`-tier; the mutating routes (`actions/*`, `step`, `scenario`) are `operator`-tier — and the agent's read-only service token reaches only the read routes, so the human-approval gate is the sole writer (see §7). Because it's seeded, the same seed + scenario replays an identical event stream — the basis of reproducibility and fair evaluation.
 
 ### 4.2 Tools bridge
 
@@ -366,3 +370,4 @@ The stack ships **self-hosted**: `opencode serve` plus the Next.js server, with 
 | 1.0.0 | 2026-06-11 | Initial whole-solution architecture: principles, system-context (L1) and component (L2) diagrams, component breakdown, data contracts, control-flow sequence, safety-boundary diagram, cross-cutting concerns, deployment view, stack, risks. |
 | 1.1.0 | 2026-06-13 | Auth (0.4.0): §3 — self-hosted auth provider (Better Auth) + SQLite store of synthetic identities, disjoint from the seeded sim; §5 — added `DecisionActor` and `DecisionRecord.actor` (denormalized snapshot, supplied by the driver/web-session layer); §9 — Cloudflare Tunnel ingress (un-published origin port, edge TLS, `CF-Connecting-IP`) and the SQLite persistence volume. |
 | 1.2.0 | 2026-06-13 | Onboarding + admin (0.5.0): §3 — invite-key store (hashed, single-use), the `viewer ⊂ coordinator ⊂ superadmin` hierarchy, the admin plugin behind an independent route-layer gate, and the DB-level last-superadmin trigger; §5 — `DecisionActor.role` widened to include `superadmin`. |
+| 1.3.0 | 2026-06-29 | §4.1 reconciled with the shipped app (#55): the sim surface is served under the `/api/sim/*` prefix (added `step`/`scenario`), with the read/operator tier split and the agent's read-only service token noted (the gate is the sole writer, §7 / #42). |

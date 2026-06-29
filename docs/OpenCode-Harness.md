@@ -2,7 +2,7 @@
 
 | | |
 | --- | --- |
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Status** | Draft |
 | **Owner** | David |
 | **Date** | 2026-06-11 |
@@ -94,7 +94,9 @@ Agents are **Markdown files** (YAML front-matter for config, body for the system
 
 ## 5. The agents
 
-OpenCode has two agent **types**: a **primary** agent (the one you prompt directly) and **subagents** (specialists the primary delegates to via the Task tool, or that you `@mention`). The `mode` field selects the type — `primary`, `subagent`, or `all`. If a primary agent doesn't name a model, it uses the global default; **a subagent with no model inherits the model of the primary that called it** — so to run subagents on a cheaper/local model we set it explicitly.
+OpenCode has two agent **types**: a **primary** agent (the one you prompt directly) and **subagents** (specialists the primary delegates to via the Task tool, or that you `@mention`). The `mode` field selects the type — `primary`, `subagent`, or `all`. If a primary agent doesn't name a model, it uses the global default; **a subagent with no model inherits the model of the primary that called it** — so the per-agent `model` field is the seam for running subagents on a different (cheaper/local) model.
+
+> **As shipped (v1.5):** all three agents run on the **OpenCode Zen free-tier `opencode/big-pickle`** (the swappable default in `PRD §10`). The per-agent split below is for *context isolation and least privilege*, not for a model-cost difference — the `model:` field is set the same on each, and the cheaper-subagent option remains available but unused in the demo. The frontmatter snippets below show the *shape*; the live values (`opencode/big-pickle`, an explicit built-in deny-list) are noted inline.
 
 ### 5.1 Orchestrator — primary agent
 
@@ -103,7 +105,7 @@ OpenCode has two agent **types**: a **primary** agent (the one you prompt direct
 ---
 description: Patient-flow orchestrator — perceive, reason, plan, act
 mode: primary
-model: anthropic/claude-sonnet-4-5
+model: opencode/big-pickle      # swappable: anthropic/* or a local Ollama model
 permission:
   world_state: allow
   forecast_discharges: allow
@@ -126,11 +128,13 @@ The orchestrator is the only agent that can reach the **action tools**, and thos
 ---
 description: For each not-ready discharge, name the specific blocker and a short reason
 mode: subagent
-model: ollama/llama3.1          # cheaper / local
+model: opencode/big-pickle      # the model field is the cheaper/local-swap seam
 permission:
   world_state: allow
   forecast_discharges: allow
-  "*": deny                     # no other tools; never an action tool
+  # Built-ins are denied EXPLICITLY (bash/read/write/edit/grep/glob/list/webfetch),
+  # not via a "*": deny wildcard — in this OpenCode version the wildcard also
+  # suppressed the allowed custom domain tools (fixed in PR #25).
 ---
 Given the current world state, for each predicted-but-not-ready discharge,
 return the specific blocker (pharmacy_script | transport | allied_health | placement)
@@ -144,17 +148,17 @@ with a one-line reason. Do not propose actions.
 ---
 description: Forecast incoming ED / admission load over the horizon
 mode: subagent
-model: ollama/llama3.1
+model: opencode/big-pickle
 permission:
   world_state: allow
   forecast_demand: allow
-  "*": deny
+  # Built-ins denied explicitly (see the discharge subagent above), not via "*": deny.
 ---
 Estimate expected admissions per ward over the given horizon, each with a short reason.
 Do not propose actions.
 ```
 
-**Why split into subagents.** Each runs in its own isolated context, so the orchestrator's working memory stays focused on planning. Each has a narrow, testable job and runs on a cheaper model. And because the subagents are **read-only**, the action capability exists in exactly one agent — the orchestrator — behind the approval gate.
+**Why split into subagents.** Each runs in its own isolated context, so the orchestrator's working memory stays focused on planning. Each has a narrow, testable job. And because the subagents are **read-only**, the action capability exists in exactly one agent — the orchestrator — behind the approval gate. (The split *could* also put the cheaper work on a cheaper model — the `model:` seam is there — but the shipped demo runs them all on `opencode/big-pickle`.)
 
 ## 6. The tools (the bridge)
 
@@ -277,3 +281,4 @@ The same `tick()` drives the evaluation harness: run it across a seeded scenario
 | Version | Date | Note |
 | --- | --- | --- |
 | 1.0.0 | 2026-06-11 | Initial harness companion: harness concept, two-loop model, `opencode serve`, file layout, agent configs (1 primary + 2 read-only subagents), custom tools, permission gate + SDK-bypass caveat, SDK driver, limitations, harness-vs-our-code line. |
+| 1.1.0 | 2026-06-29 | §5 reconciled with the shipped harness (#55): all three agents run `opencode/big-pickle` (not Sonnet/Ollama) — the per-agent `model:` seam is for context isolation/least privilege, the cheaper-subagent split is available but unused in the demo; built-ins are denied **explicitly** (not via a `"*": deny` wildcard, which suppressed the custom domain tools — PR #25). |
