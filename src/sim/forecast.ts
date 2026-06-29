@@ -79,10 +79,23 @@ export function forecastDemand(
 ): DemandForecast {
   const waiting = state.edQueue.length
   const projected = Math.round(ASSUMED_ARRIVALS_PER_HOUR * horizonHrs)
+  const hospitalInflow = waiting + projected
+
+  // Apportion the hospital-wide inflow across wards by bed share, so the per-ward
+  // contract is genuinely per-ward (and the parts sum to the hospital total) rather
+  // than every ward reporting the same hospital-wide figure. Bed share is stable —
+  // it doesn't depend on the current clean count — so a momentarily full ward still
+  // shows its expected load.
+  const totalBeds = state.wards.reduce((n, w) => n + w.bedCount, 0)
+  const ward = state.wards.find((w) => w.id === wardId)
+  const share = ward && totalBeds > 0 ? ward.bedCount / totalBeds : 0
+  const expectedAdmissions = Math.round(hospitalInflow * share)
+  const shareNote = ward ? `this ward's ${ward.bedCount} of ${totalBeds} beds` : "unknown ward"
+
   return {
     wardId,
     horizonHrs,
-    expectedAdmissions: waiting + projected,
-    rationale: `${waiting} waiting in ED now + ~${projected} expected arrivals over ${horizonHrs}h (hospital-wide ED inflow).`,
+    expectedAdmissions,
+    rationale: `~${expectedAdmissions} expected in this ward over ${horizonHrs}h — ${shareNote} share of ${hospitalInflow} hospital-wide arrivals (${waiting} waiting in ED + ~${projected} projected).`,
   }
 }
