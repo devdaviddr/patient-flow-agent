@@ -57,7 +57,11 @@ services:
     ports:
       - "4096:4096"
     environment:
+      # Provider credentials — set a key and that provider's models become selectable
+      # in Settings (OpenCode lists env-keyed providers via config.providers, #75). Zen
+      # is the zero-config default (public key); these are opt-in.
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       - OLLAMA_URL=http://ollama:11434
       - SIM_URL=http://app:3000/api/sim
       # Same shared secret as the app — the agent's tools send it to reach the sim.

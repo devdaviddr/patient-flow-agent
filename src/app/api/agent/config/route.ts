@@ -24,6 +24,19 @@ export const PUT = withPolicy("operator", async (req) => {
   const csrf = checkSameOrigin(req)
   if (csrf) return csrf
   const patch = (await req.json().catch(() => ({}))) as Partial<AgentConfig>
+  // Best-effort: reject a model OpenCode can't serve (#75). When the harness is
+  // unreachable the list is empty → we can't verify, so allow it (the runtime failure
+  // surfaces via the assessment error path). SDK access stays in the adapter.
+  if (typeof patch.model === "string") {
+    const { listModels } = await import("@/driver/adapter")
+    const available = await listModels()
+    if (available.length > 0 && !available.some((m) => m.id === patch.model)) {
+      return NextResponse.json(
+        { error: `model "${patch.model}" is not offered by OpenCode` },
+        { status: 400 },
+      )
+    }
+  }
   try {
     return NextResponse.json(setAgentConfig(patch))
   } catch (err) {
